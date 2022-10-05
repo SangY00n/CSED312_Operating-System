@@ -623,7 +623,7 @@ void insert_sleep_thread()
 
 void thread_awake(int64_t ticks)
 {
-  struct thread *thread
+  struct thread *thread;//
 }
 
 /* Offset of `stack' member within `struct thread'.
