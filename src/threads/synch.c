@@ -68,7 +68,8 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      // insert current thread into writers list by calling list_insert_ordered in stead of list_push_back
+      list_insert_ordered(&sema->waiters, &thread_current ()->elem, thread_compare_priority, NULL);
       thread_block ();
     }
   sema->value--;
@@ -113,10 +114,18 @@ sema_up (struct semaphore *sema)
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
-  if (!list_empty (&sema->waiters)) 
+  if (!list_empty (&sema->waiters)) {
+    // the priority of threads in the waiter list may have changed,
+    // sort them before calling thread_unblock by list_sort()
+    list_sort(&(sema->waiters), thread_compare_priority, NULL);
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem));
+  }
   sema->value++;
+
+  // 
+  check_list_preemption();
+
   intr_set_level (old_level);
 }
 
@@ -336,3 +345,26 @@ cond_broadcast (struct condition *cond, struct lock *lock)
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
 }
+
+// if a's waiters' head's prirority is higher than b's waiters' head's prirority, return true, else return false
+bool sema_compare_priority(const struct list_elem *a, const struct list_elem *b, void *aux) {
+  const struct semaphore_elem* s1 = list_entry(a, struct semaphore_elem, elem);
+  const struct semaphore_elem* s2 = list_entry(b, struct semaphore_elem, elem);
+
+  struct list_elem *s1_head_t_elem;
+  struct list_elem *s2_head_t_elem;
+
+
+  if (!list_empty(&(s1->semaphore.waiters)) && !list_empty(&(s2->semaphore.waiters))) {
+    s1_head_t_elem = list_begin(s1->semaphore.waiters);
+    s2_head_t_elem = list_begin(s2->semaphore.waiters);
+    return thread_compare_priority(s1_head_t_elem, s2_head_t_elem, NULL);
+  }
+  else if(!list_empty(&(s1->semaphore.waiters))) {
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
