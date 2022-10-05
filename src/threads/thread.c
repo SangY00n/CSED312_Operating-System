@@ -24,6 +24,10 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+/* List of prcesses in THREAD_BLOCKED state */
+//add new struct
+static struct list list_sleep_thread;
+
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
@@ -92,12 +96,18 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+  //sleep thread list인 list_sleep_thread를 초기화한다.
+  //list_sleep_thread 초기화 추가
+  list_init(&list_sleep_thread);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+
+
+
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -579,6 +589,43 @@ allocate_tid (void)
   return tid;
 }
 
+
+/* if current thread is idle thread, return 1. Else, return 0*/
+int
+thread_check_idle(void)
+{
+  struct thread *cur = thread_current ();
+  if(cur == idle_thread) return 1;
+  else return 0;
+}
+
+/*list_sleep_thread의 ticks가 작은 순서대로 삽입
+list.c의 list_insert_ordered 사용 */
+//list_insert_ordered (struct list *list, struct list_elem *elem, list_less_func *less, void *aux)
+
+bool compare_tick(const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+  //a 가 b보다 작으면 true, 아니면 false
+  struct thread *A = list_entry(a, struct thread, elem);
+  struct thread *B = list_entry(b, struct thread, elem);
+  if(A->wakeup_tick < B->wakeup_tick)
+  {
+    return true;
+  }
+  else return false;
+
+}
+void insert_sleep_thread()
+{
+  struct thread *cur = thread_current();
+  list_insert_ordered (&list_sleep_thread, &cur->elem, compare_tick, NULL);
+}
+
+void thread_awake(int64_t ticks)
+{
+  struct thread *thread
+}
+
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);

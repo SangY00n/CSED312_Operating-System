@@ -90,10 +90,35 @@ void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
+  struct thread *cur = thread_current(); //현재 thread저장. running_thread에 sanity check 더한 것이 thread_current 사용할 것.
+  enum intr_level prev_level;
+  //sleep만드는 과정에서 인터럽트 일어나지 않도록 설정
+  prev_level = intr_disable ();
+
+  //idle thread인지을 체크하기 위하여 thread.c에 thread_check_idle함수 추가
+  ASSERT(thread_check_idle() == 0)
+
+  //thread의 wakeup_tick에 ticks를 저장한다.
+  cur -> wakeup_tick = start + ticks;
+
+  //list_sleep_thread에 삽입 (ticks에 대하여 오름차순 유지)
+  insert_sleep_thread();
+  
+  //status를 blocked로 변경한 뒤 스케쥴링 동작
+  thread_block();
+  
+  //기존 interupt 상태로 되돌림
+  intr_set_level(prev_level);
+
+
+  //기존 구현
+  /*
+  int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
   while (timer_elapsed (start) < ticks) 
     thread_yield ();
+  */
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
