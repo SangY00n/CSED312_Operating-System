@@ -68,7 +68,7 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      // insert current thread into writers list by calling list_insert_ordered in stead of list_push_back
+      // insert current thread into waiters list by calling list_insert_ordered in stead of list_push_back
       list_insert_ordered(&sema->waiters, &thread_current ()->elem, thread_compare_priority, NULL);
       thread_block ();
     }
@@ -116,7 +116,7 @@ sema_up (struct semaphore *sema)
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)) {
     // the priority of threads in the waiter list may have changed,
-    // sort them before calling thread_unblock by list_sort()
+    // sort them by list_sort() before calling thread_unblock()
     list_sort(&(sema->waiters), thread_compare_priority, NULL);
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem));
@@ -304,7 +304,8 @@ cond_wait (struct condition *cond, struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   
   sema_init (&waiter.semaphore, 0);
-  list_push_back (&cond->waiters, &waiter.elem);
+  // insert waiter into waiters list by calling list_insert_ordered in stead of list_push_back
+  list_insert_ordered(&cond->waiters, &waiter.elem, sema_compare_priority, NULL);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
@@ -325,9 +326,13 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
   ASSERT (!intr_context ());
   ASSERT (lock_held_by_current_thread (lock));
 
-  if (!list_empty (&cond->waiters)) 
+  if (!list_empty (&cond->waiters)) {
+    // the priority of waiters may have changed,
+    // sort them by list_sort() before calling sema_up()
+    list_sort(&cond->waiters, sema_compare_priority, NULL);
     sema_up (&list_entry (list_pop_front (&cond->waiters),
                           struct semaphore_elem, elem)->semaphore);
+  }
 }
 
 /* Wakes up all threads, if any, waiting on COND (protected by
@@ -354,10 +359,9 @@ bool sema_compare_priority(const struct list_elem *a, const struct list_elem *b,
   struct list_elem *s1_head_t_elem;
   struct list_elem *s2_head_t_elem;
 
-
   if (!list_empty(&(s1->semaphore.waiters)) && !list_empty(&(s2->semaphore.waiters))) {
-    s1_head_t_elem = list_begin(s1->semaphore.waiters);
-    s2_head_t_elem = list_begin(s2->semaphore.waiters);
+    s1_head_t_elem = list_begin(&(s1->semaphore.waiters));
+    s2_head_t_elem = list_begin(&(s2->semaphore.waiters));
     return thread_compare_priority(s1_head_t_elem, s2_head_t_elem, NULL);
   }
   else if(!list_empty(&(s1->semaphore.waiters))) {
