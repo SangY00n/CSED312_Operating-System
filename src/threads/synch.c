@@ -68,7 +68,8 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      // insert current thread into waiters list by calling list_insert_ordered in stead of list_push_back
+      list_insert_ordered(&sema->waiters, &thread_current ()->elem, thread_compare_priority, NULL);
       thread_block ();
     }
   sema->value--;
@@ -113,10 +114,18 @@ sema_up (struct semaphore *sema)
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
-  if (!list_empty (&sema->waiters)) 
+  if (!list_empty (&sema->waiters)) {
+    // the priority of threads in the waiter list may have changed,
+    // sort them by list_sort() before calling thread_unblock()
+    list_sort(&(sema->waiters), thread_compare_priority, NULL);
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem));
+  }
   sema->value++;
+
+  // preemption may occur, due to thread_unblock()
+  check_list_preemption();
+
   intr_set_level (old_level);
 }
 
@@ -196,8 +205,24 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  // if the lock is held by other thread,
+  // save the address of the lock to lock_waiting_for of a current thread
+  struct thread *t_cur = thread_current();
+  if (lock->holder != NULL) {
+    t_cur->lock_waiting_for = lock;
+    list_push_back(&(lock->holder->donations), &(t_cur->donation_elem));
+    
+    // call donate_priority for priority donation
+    donate_priority(t_cur, 0);
+  }
+
+
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
+  thread_current()->lock_waiting_for = NULL;
+
+
+  
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -232,6 +257,10 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   lock->holder = NULL;
+
+  remove_with_lock(lock); // lock이 release 되었으므로 donations 리스트를 비워준다.
+  refresh_priority();
+
   sema_up (&lock->semaphore);
 }
 
@@ -295,7 +324,8 @@ cond_wait (struct condition *cond, struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   
   sema_init (&waiter.semaphore, 0);
-  list_push_back (&cond->waiters, &waiter.elem);
+  // insert waiter into waiters list by calling list_insert_ordered in stead of list_push_back
+  list_insert_ordered(&cond->waiters, &waiter.elem, sema_compare_priority, NULL);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
@@ -316,9 +346,13 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
   ASSERT (!intr_context ());
   ASSERT (lock_held_by_current_thread (lock));
 
-  if (!list_empty (&cond->waiters)) 
+  if (!list_empty (&cond->waiters)) {
+    // the priority of waiters may have changed,
+    // sort them by list_sort() before calling sema_up()
+    list_sort(&cond->waiters, sema_compare_priority, NULL);
     sema_up (&list_entry (list_pop_front (&cond->waiters),
                           struct semaphore_elem, elem)->semaphore);
+  }
 }
 
 /* Wakes up all threads, if any, waiting on COND (protected by
@@ -335,4 +369,25 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+// if a's waiters' head's prirority is higher than b's waiters' head's prirority, return true, else return false
+bool sema_compare_priority(const struct list_elem *a, const struct list_elem *b, void *aux) {
+  const struct semaphore_elem* s1 = list_entry(a, struct semaphore_elem, elem);
+  const struct semaphore_elem* s2 = list_entry(b, struct semaphore_elem, elem);
+
+  struct list_elem *s1_head_t_elem;
+  struct list_elem *s2_head_t_elem;
+
+  if (!list_empty(&(s1->semaphore.waiters)) && !list_empty(&(s2->semaphore.waiters))) {
+    s1_head_t_elem = list_begin(&(s1->semaphore.waiters));
+    s2_head_t_elem = list_begin(&(s2->semaphore.waiters));
+    return thread_compare_priority(s1_head_t_elem, s2_head_t_elem, NULL);
+  }
+  else if(!list_empty(&(s1->semaphore.waiters))) {
+    return true;
+  }
+  else {
+    return false;
+  }
 }
