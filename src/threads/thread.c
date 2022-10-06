@@ -86,6 +86,16 @@ void check_list_preemption(void);
 void donate_priority(struct thread* t, int depth);
 void remove_with_lock(struct lock *lock);
 void refresh_priority(void);
+void mlfqs_priority(struct thread *t);
+int calc_priority(fixed_t _recent_cpu, int _nice);
+void mlfqs_recent_cpu (struct thread *t);
+fixed_t calc_recent_cpu(fixed_t _load_avg, fixed_t _recent_cpu, int _nice);
+void mlfqs_load_avg(void);
+fixed_t calc_load_avg(fixed_t _load_avg, int _ready_threads);
+void mlfqs_recent_cpu_incr(void);
+void mlfqs_update_all(void);
+void mlfqs_update_all_recent_cpu(void);
+void mlfqs_update_all_priority(void);
 
 
 /* Initializes the threading system by transforming the code
