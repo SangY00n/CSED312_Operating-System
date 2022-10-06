@@ -68,7 +68,7 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 bool thread_mlfqs;
 
 /* load_avg value for mlfqs */
-int load_avg;
+fixed_t load_avg;
 
 static void kernel_thread (thread_func *, void *aux);
 
@@ -138,6 +138,9 @@ thread_start (void)
 
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
+
+  /* Initialize load_avg value */
+  load_avg = convert_i2f(0);
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -403,7 +406,7 @@ thread_get_nice (void)
 }
 
 /* Returns 100 times the system load average. */
-int
+fixed_t
 thread_get_load_avg (void) 
 {
   /* Not yet implemented. */
@@ -411,7 +414,7 @@ thread_get_load_avg (void)
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
-int
+fixed_t
 thread_get_recent_cpu (void) 
 {
   /* Not yet implemented. */
@@ -773,10 +776,10 @@ void mlfqs_priority(struct thread *t) {
       t->priority = priority;
   }
 }
-// return priority = PRI_MAX - (recent_cpu / 4) - (nice * 2)
-int calc_priority(int _recent_cpu, int _nice) {
+int calc_priority(fixed_t _recent_cpu, int _nice) {
+  // return priority = PRI_MAX - (recent_cpu / 4) - (nice * 2)
   int priority;
-  /* Not yet implemented */
+  priority = conver_f2i_round(sub_inf(PRI_MAX, add_f(div_xbn(_recent_cpu, 4), convert_i2f(2*_nice))));
   return priority;
 }
 
@@ -784,9 +787,9 @@ int calc_priority(int _recent_cpu, int _nice) {
 void mlfqs_recent_cpu (struct thread *t) {
   t->recent_cpu = calc_recent_cpu(load_avg, t->recent_cpu, t->nice);
 }
-int calc_recent_cpu(int _load_avg, int _recent_cpu, int _nice) {
-  /* Not yet implemented */
+fixed_t calc_recent_cpu(fixed_t _load_avg, fixed_t _recent_cpu, int _nice) {
   // return recent_cpu = (2*load_avg)/(2*load_avg + 1) * recent_cpu + nice
+  return add_inf(_nice, mul_f(div_xby(mul_inf(2, _load_avg), add_inf(1, mul_inf(2, _load_avg))), _recent_cpu));
 }
 
 
@@ -799,18 +802,18 @@ void mlfqs_load_avg(void) {
   
   load_avg = calc_load_avg(load_avg, num_ready_threads);
 }
-int calc_load_avg(int _load_avg, int _ready_threads) {
-  /* Not yet implemented */
+fixed_t calc_load_avg(fixed_t _load_avg, int _ready_threads) {
   // return load_avg = (59/60)*load_avg + (1/60)*ready_threads
+  return add_f(mul_f(div_xbn(convert_i2f(59), 60), _load_avg), mul_inf(_ready_threads, div_xbn(convert_i2f(1), 60)));
 }
 
 
 void mlfqs_recent_cpu_incr(void) {
   struct thread *t_cur = thread_current();
   // check if current thread is idle_thread,
-  // if not, increment recent_cpu value of current thread
+  // if not, increase recent_cpu value of current thread by 1
   if (t_cur!=idle_thread)
-    /* Not yet implemented */
+    t_cur->recent_cpu = add_inf(1, t_cur->recent_cpu);
 }
 
 
