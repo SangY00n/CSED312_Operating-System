@@ -66,6 +66,9 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
 
+/* load_avg value for mlfqs */
+int load_avg;
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
@@ -749,4 +752,85 @@ void refresh_priority(void) {
   }
 
   t_cur->priority = max(origin_priority, donations_max_priority);
+}
+
+
+/* Functions for Advanced Scheduler implementation */
+void mlfqs_priority(struct thread *t) {
+  int priority;
+  // first, check if t is idle thread
+  if (t != idle_thread) {
+    // priority calculation part
+    // priority = PRI_MAX - (recent_cpu / 4) - (nice * 2)
+    priority = calc_priority(t->recent_cpu, t->nice);
+
+    if (priority < PRI_MIN)
+      t->priority = PRI_MIN;
+    else if (priority > PRI_MAX)
+      t->priority = PRI_MAX;
+    else
+      t->priority = priority;
+  }
+}
+// return priority = PRI_MAX - (recent_cpu / 4) - (nice * 2)
+int calc_priority(int _recent_cpu, int _nice) {
+  int priority;
+  /* Not yet implemented */
+  return priority;
+}
+
+
+void mlfqs_recent_cpu (struct thread *t) {
+  t->recent_cpu = calc_recent_cpu(load_avg, t->recent_cpu, t->nice);
+}
+int calc_recent_cpu(int _load_avg, int _recent_cpu, int _nice) {
+  /* Not yet implemented */
+  // return recent_cpu = (2*load_avg)/(2*load_avg + 1) * recent_cpu + nice
+}
+
+
+void mlqfs_load_avg(void) {
+  int num_ready_threads = list_size(&ready_list);
+  // ready_list 외에도 현재 실행 중인 thread가 idle thread가 아닌 경우,
+  // load_avg의 계산을 위해 포함해야 한다.
+  struct thread *t_cur = thread_current();
+  if(t_cur != idle_thread) num_ready_threads++;
+  
+  load_avg = calc_load_avg(load_avg, num_ready_threads);
+}
+int calc_load_avg(int _load_avg, int _ready_threads) {
+  /* Not yet implemented */
+  // return load_avg = (59/60)*load_avg + (1/60)*ready_threads
+}
+
+
+void mlfqs_recent_cpu_incr(void) {
+  struct thread *t_cur = thread_current();
+  // check if current thread is idle_thread,
+  // if not, increment recent_cpu value of current thread
+  if (t_cur!=idle_thread)
+    /* Not yet implemented */
+}
+
+
+// recalculate recent_cpu and priority of all threads
+void mlfqs_update_all(void) {
+  mlfqs_update_all_recent_cpu();
+  mlfqs_update_all_priority();
+}
+void mlfqs_update_all_recent_cpu(void) {
+  struct list_elem* elem=list_begin(&all_list);
+  while(elem!=list_end(&all_list)) {
+    mlfqs_recent_cpu(list_entry(elem, struct thread, allelem));
+    elem = list_next(elem);
+  }
+}
+void mlfqs_update_all_priority(void) {
+  struct list_elem* elem=list_begin(&all_list);
+  while(elem!=list_end(&all_list)) {
+    mlfqs_priority(list_entry(elem, struct thread, allelem));
+    elem = list_next(elem);
+  }
+  // after update all, should sort ready_list for new updated priority
+  list_sort(&ready_list, thread_compare_priority, NULL);
 }
