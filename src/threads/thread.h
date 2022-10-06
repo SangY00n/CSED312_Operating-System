@@ -167,5 +167,14 @@ void check_list_preemption(void);
 void donate_priority(struct thread* t, int depth);
 void remove_with_lock(struct lock *lock);
 void refresh_priority(void);
+void mlfqs_priority(struct thread *t);
+int calc_priority(int _recent_cpu, int _nice);
+void mlfqs_recent_cpu (struct thread *t);
+void mlfqs_load_avg(void);
+int calc_load_avg(int _load_avg, int _ready_threads);
+void mlfqs_recent_cpu_incr(void);
+void mlfqs_update_all(void);
+void mlfqs_update_all_recent_cpu(void);
+void mlfqs_update_all_priority(void);
 
 #endif /* threads/thread.h */
