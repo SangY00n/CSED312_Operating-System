@@ -371,6 +371,9 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+  //mlfqs스케쥴러를 사용할때는 새로운 priority를 임의로 설정할 수 없도록 해야 한다.
+  if(!thread_mlfqs)
+  {
   thread_current ()->origin_priority = new_priority;
   // set origin_priority as new one
   // then, it is nesessary to compare new origin priority and donation priority
@@ -381,6 +384,8 @@ thread_set_priority (int new_priority)
   // if current's priority is lower, call thread_yield
   // do this by calling check_list_preemption()
   check_list_preemption();
+  }
+  else return;
 }
 
 /* Returns the current thread's priority. */
@@ -392,33 +397,63 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice) 
 {
-  /* Not yet implemented. */
+  //intr disable
+  enum intr_level prev_level = intr_disable();
+  
+  struct thread *cur = thread_current();
+
+  //current_thread nice 설정
+  cur->nice = nice;
+
+  //nice 계산하였으니 priority 다시 계산
+  mlfqs_priority(cur);
+
+  //priority에 따라 다시 스케쥴링
+  check_list_preemption();
+
+  //intr level 이전으로 되돌림
+  intr_set_level(prev_level);
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  enum intr_level prev_level = intr_disable();
+  struct thread *cur = thread_current();
+  int cur_nice = cur->nice;
+
+  intr_set_level(prev_level);
+  return cur_nice;
 }
 
 /* Returns 100 times the system load average. */
-fixed_t
+int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  enum intr_level prev_level = intr_disable();
+  int load_avg_100;
+
+  load_avg_100 = convert_f2i_round(mul_inf(100, load_avg));
+  intr_set_level(prev_level);
+  return load_avg_100;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
-fixed_t
-thread_get_recent_cpu (void) 
+int
+thread_get_recent_cpu (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  enum intr_level prev_level = intr_disable();
+  int recent_cpu_100;
+  struct thread *cur = thread_current();
+  fixed_t recent_cpu = cur->recent_cpu;
+
+  recent_cpu_100 = convert_f2i_round(mul_inf(100, recent_cpu));
+
+  intr_set_level(prev_level);
+  return recent_cpu_100;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
