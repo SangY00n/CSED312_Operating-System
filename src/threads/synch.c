@@ -205,8 +205,24 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  // if the lock is held by other thread,
+  // save the address of the lock to lock_waiting_for of a current thread
+  struct thread *t_cur = thread_current();
+  if (lock->holder != NULL) {
+    t_cur->lock_waiting_for = lock;
+    list_push_back(&(lock->holder->donations), &(t_cur->donation_elem));
+    
+    // call donate_priority for priority donation
+    donate_priority(t_cur, 0);
+  }
+
+
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
+  thread_current()->lock_waiting_for = NULL;
+
+
+  
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -241,6 +257,10 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   lock->holder = NULL;
+
+  remove_with_lock(); // lock이 release 되었으므로 donations 리스트
+  refresh_priority();
+
   sema_up (&lock->semaphore);
 }
 
@@ -371,4 +391,3 @@ bool sema_compare_priority(const struct list_elem *a, const struct list_elem *b,
     return false;
   }
 }
-

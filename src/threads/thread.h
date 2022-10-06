@@ -24,6 +24,10 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+/* Priority donation values */
+#define NESTED_DEPTH_MAX 8
+
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -93,6 +97,15 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
+
+    /* For donation implementation */
+    /* Some of them must be initialized in init_thread() */
+    int origin_priority;                /* original priority for initialization after donation */
+    struct lock *lock_waiting_for;      /* the lock Thread waiting for */
+    struct list donations;              /* for multiple donation : 자신에게 donate한 threads 목록 */ 
+    struct list_elem donation_elem;     /* for multiple donation : 자신에게 donate한 thread element*/
+
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -140,5 +153,8 @@ int thread_get_load_avg (void);
 
 bool thread_compare_priority(const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED);
 void check_list_preemption(void);
+void donate_priority(struct thread* t, int depth);
+void remove_with_lock(struct lock *lock);
+void refresh_priority(void);
 
 #endif /* threads/thread.h */

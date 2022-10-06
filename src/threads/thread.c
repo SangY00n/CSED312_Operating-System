@@ -15,6 +15,9 @@
 #include "userprog/process.h"
 #endif
 
+#define min(x,y) (x) < (y) ? (x) : (y)
+#define max(x,y) (x) > (y) ? (x) : (y)
+
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -72,6 +75,10 @@ void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 bool thread_compare_priority(const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED);
 void check_list_preemption(void);
+void donate_priority(struct thread* t, int depth);
+void remove_with_lock(struct lock *lock);
+void refresh_priority(void);
+
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -481,6 +488,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 
+  /* initialize member variable for multiple donation */
+  t->origin_priority = priority;
+  t->lock_waiting_for = NULL;
+  list_init(&(t->donations));
+
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
@@ -618,4 +630,47 @@ void check_list_preemption(void) {
       thread_yield();
     }
   }
+}
+
+// 다른 함수에서 호출할 때 t=current_thread(), depth=0으로 호출하도록 한다.
+void donate_priority(struct thread* t, int depth) {
+  struct thread* t_holder;
+  if(depth >= NESTED_DEPTH_MAX || t->lock_waiting_for==NULL)
+    return;
+  else {
+    t_holder = t->lock_waiting_for->holder;
+    // if current thread priority is higher than holder thread,
+    // donate current thread priority to holder thread
+    if (t->priority > holder->priority)
+      t_holder->priority = t->priority;
+    donate_priority(t_holder, depth+1);
+  }
+}
+
+
+void remove_with_lock(struct lock *lock) {
+  struct thread* t_cur = thread_current();
+  struct list_elem* cur_elem = list_begin(&(t_cur->donations));
+  while(cur_elem!=list_end(&(t_cur->donations))) {
+    cur_elem_thread = list_entry(cur_elem, struct thread, donation_elem);
+    if(cur_elem_thread->lock_waiting_for == lock)
+      cur_elem = list_remove(cur_elem);
+    else
+      cur_elem = list_next(cur_elem);
+  }
+}
+
+// donations 리스트가 변화하였을 때 priority도 그에 따라 함께 변화하도록 한다.
+void refresh_priority(void) {
+  struct thread* t_cur = thread_current();
+  int origin_priority = t_cur->origin_priority;
+  int donations_max_priority = PRI_MIN - 1;
+  
+  // donations 리스트에서 가장 높은 priority가 origin_priority 보다 높은 경우
+  // 해당 priority를 갖도록 한다.
+  if(!list_empty(&(t->donations))) {
+    donations_max_priority = (list_entry(list_max(&(t->donations), thread_compare_priority, NULL), struct thread, donation_elem))->priority;
+  }
+
+  t_cur->priority = max(origin_priority, donations_max_priority);
 }
