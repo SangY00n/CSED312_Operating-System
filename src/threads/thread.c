@@ -416,7 +416,7 @@ thread_get_nice (void)
 }
 
 /* Returns 100 times the system load average. */
-fixed_t
+int
 thread_get_load_avg (void) 
 {
   /* Not yet implemented. */
@@ -424,7 +424,7 @@ thread_get_load_avg (void)
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
-fixed_t
+int
 thread_get_recent_cpu (void) 
 {
   /* Not yet implemented. */
@@ -724,7 +724,7 @@ void check_list_preemption(void) {
   }
 }
 
-// 다른 함수에서 호출할 때 t=current_thread(), depth=0으로 호출하도록 한다.
+// 다른 함수에서 호출할 때 t=thread_current(), depth=0으로 호출하도록 한다.
 void donate_priority(struct thread* t, int depth) {
   struct thread* t_holder;
   if(depth >= NESTED_DEPTH_MAX || t->lock_waiting_for==NULL)

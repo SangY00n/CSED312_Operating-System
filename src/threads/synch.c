@@ -205,24 +205,25 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
-  // if the lock is held by other thread,
-  // save the address of the lock to lock_waiting_for of a current thread
-  struct thread *t_cur = thread_current();
-  if (lock->holder != NULL) {
-    t_cur->lock_waiting_for = lock;
-    list_push_back(&(lock->holder->donations), &(t_cur->donation_elem));
-    
-    // call donate_priority for priority donation
-    donate_priority(t_cur, 0);
-  }
+  // if mlfqs is used, deactivate code related priority
+  if(!thread_mlfqs) {
 
+    // if the lock is held by other thread,
+    // save the address of the lock to lock_waiting_for of a current thread
+    struct thread *t_cur = thread_current();
+    if (lock->holder != NULL) {
+      t_cur->lock_waiting_for = lock;
+      list_push_back(&(lock->holder->donations), &(t_cur->donation_elem));
+      
+      // call donate_priority for priority donation
+      donate_priority(t_cur, 0);
+    }
+
+    thread_current()->lock_waiting_for = NULL;
+  }
 
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
-  thread_current()->lock_waiting_for = NULL;
-
-
-  
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -257,9 +258,12 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   lock->holder = NULL;
-
-  remove_with_lock(lock); // lock이 release 되었으므로 donations 리스트를 비워준다.
-  refresh_priority();
+  
+  // if mlfqs is used, deactivate code related priority
+  if (!thread_mlfqs) {
+    remove_with_lock(lock); // lock이 release 되었으므로 donations 리스트를 비워준다.
+    refresh_priority();
+  }
 
   sema_up (&lock->semaphore);
 }
