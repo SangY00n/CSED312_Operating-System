@@ -1,68 +1,71 @@
 #define f 1 << 14
 //f는 17.14 방식으로 표현한 1 값. p.q방식일때 2**q값이므로 14만큼 shift.
 
-int convert_i2f(int n);
-int convert_f2i_round(int x); //반올림
-int convert_f2i_nearest(int x); //nearest
-int add_f(int x, int y);
-int sub_f(int x, int y);
-int add_inf(int n, int x);
-int sub_inf(int n, int x);
-int mul_f(int x, int y);
-int mul_inf(int x, int n);
-int div_xby(int x, int y);
-int div_xbn(int x, int n);
+typedef int fixed_t;
+
+fixed_t convert_i2f(int n);
+int convert_f2i_round(fixed_t x); //반올림
+int convert_f2i_nearest(fixed_t x); //nearest
+fixed_t add_f(fixed_t x, fixed_t y);
+fixed_t sub_f(fixed_t x, fixed_t y);
+fixed_t add_inf(int n, fixed_t x);
+fixed_t sub_inf(int n, fixed_t x);
+fixed_t mul_f(fixed_t x, fixed_t y);
+fixed_t mul_inf(int n, fixed_t x);
+fixed_t div_xbn(fixed_t x, int n);
+fixed_t div_xby(fixed_t x, fixed_t y);
+
 
 int convert_i2f(int n)
 {
     return n*f;
 }
 
-int convert_f2i_round(int x)
+int convert_f2i_round(fixed_t x)
 {
     if(x>=0) return (x+f/2)/f;
     else return (x-f/2)/f;
 }
 
-int convert_f2i_round_down(int x)
+int convert_f2i_round_down(fixed_t x)
 {
     return x / f;
 }
 
-int add_f(int x, int y)
+fixed_t add_f(fixed_t x, fixed_t y)
 {
     return x + y;
 }
 
-int sub_f(int x, int y)
+fixed_t sub_f(fixed_t x, fixed_t y)
 {
     return x - y;
 }
 
-int add_inf(int n, int x)
+fixed_t add_inf(int n, fixed_t x)
 {
     return n*f + x;
 }
 
-int sub_inf(int n, int x)
+fixed_t sub_inf(int n, fixed_t x)
 {
     return n*f - x;
 }
 
-int mul_f(int x, int y)
+fixed_t mul_f(fixed_t x, fixed_t y)
 {
     return ((int64_t)x) * y / f;
 }
 
-int mul_inf(int n, int x)
+fixed_t mul_inf(int n, fixed_t x)
 {
     return x*n;
 }
-int div_xbn(int x, int n)
+fixed_t div_xbn(fixed_t x, int n)
 {
     return x/n;
 }
-int div_xby(int x, int y)
+fixed_t div_xby(fixed_t x, fixed_t y)
 {
     return ((int64_t)x)*f/y;
 }

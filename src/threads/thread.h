@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <fixed_point.h>
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -107,7 +108,7 @@ struct thread
 
     /* For Advanced Scheduler implementation */
     int nice;
-    int recent_cpu;
+    fixed_t recent_cpu;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
