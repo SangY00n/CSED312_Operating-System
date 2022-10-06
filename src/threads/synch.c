@@ -258,7 +258,7 @@ lock_release (struct lock *lock)
 
   lock->holder = NULL;
 
-  remove_with_lock(); // lock이 release 되었으므로 donations 리스트
+  remove_with_lock(lock); // lock이 release 되었으므로 donations 리스트를 비워준다.
   refresh_priority();
 
   sema_up (&lock->semaphore);

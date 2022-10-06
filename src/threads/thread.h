@@ -97,7 +97,6 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-
     /* For donation implementation */
     /* Some of them must be initialized in init_thread() */
     int origin_priority;                /* original priority for initialization after donation */

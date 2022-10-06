@@ -354,7 +354,11 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  thread_current ()->origin_priority = new_priority;
+  // set origin_priority as new one
+  // then, it is nesessary to compare new origin priority and donation priority
+  refresh_priority();
+
   // after set priority as new one,
   // compare ready list elements' priority with current's
   // if current's priority is lower, call thread_yield
@@ -641,7 +645,7 @@ void donate_priority(struct thread* t, int depth) {
     t_holder = t->lock_waiting_for->holder;
     // if current thread priority is higher than holder thread,
     // donate current thread priority to holder thread
-    if (t->priority > holder->priority)
+    if (t->priority > t_holder->priority)
       t_holder->priority = t->priority;
     donate_priority(t_holder, depth+1);
   }
@@ -651,6 +655,7 @@ void donate_priority(struct thread* t, int depth) {
 void remove_with_lock(struct lock *lock) {
   struct thread* t_cur = thread_current();
   struct list_elem* cur_elem = list_begin(&(t_cur->donations));
+  struct thread* cur_elem_thread;
   while(cur_elem!=list_end(&(t_cur->donations))) {
     cur_elem_thread = list_entry(cur_elem, struct thread, donation_elem);
     if(cur_elem_thread->lock_waiting_for == lock)
@@ -668,8 +673,8 @@ void refresh_priority(void) {
   
   // donations 리스트에서 가장 높은 priority가 origin_priority 보다 높은 경우
   // 해당 priority를 갖도록 한다.
-  if(!list_empty(&(t->donations))) {
-    donations_max_priority = (list_entry(list_max(&(t->donations), thread_compare_priority, NULL), struct thread, donation_elem))->priority;
+  if(!list_empty(&(t_cur->donations))) {
+    donations_max_priority = (list_entry(list_max(&(t_cur->donations), thread_compare_priority, NULL), struct thread, donation_elem))->priority;
   }
 
   t_cur->priority = max(origin_priority, donations_max_priority);
