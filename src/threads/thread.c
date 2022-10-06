@@ -789,7 +789,7 @@ int calc_recent_cpu(int _load_avg, int _recent_cpu, int _nice) {
 }
 
 
-void mlqfs_load_avg(void) {
+void mlfqs_load_avg(void) {
   int num_ready_threads = list_size(&ready_list);
   // ready_list 외에도 현재 실행 중인 thread가 idle thread가 아닌 경우,
   // load_avg의 계산을 위해 포함해야 한다.
