@@ -502,10 +502,14 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 
-  /* initialize member variable for multiple donation */
+  /* initialize member variables for multiple donation */
   t->origin_priority = priority;
   t->lock_waiting_for = NULL;
   list_init(&(t->donations));
+
+  /* initialize member variables for advanced scheduler */
+  t->nice = 0;
+  t->recent_cpu = 0;
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

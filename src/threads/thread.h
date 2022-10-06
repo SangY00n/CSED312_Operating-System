@@ -105,6 +105,9 @@ struct thread
     struct list donations;              /* for multiple donation : 자신에게 donate한 threads 목록 */ 
     struct list_elem donation_elem;     /* for multiple donation : 자신에게 donate한 thread element*/
 
+    /* For Advanced Scheduler implementation */
+    int nice;
+    int recent_cpu;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
