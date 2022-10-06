@@ -773,10 +773,10 @@ void mlfqs_priority(struct thread *t) {
       t->priority = priority;
   }
 }
-// return priority = PRI_MAX - (recent_cpu / 4) - (nice * 2)
 int calc_priority(int _recent_cpu, int _nice) {
+  // return priority = PRI_MAX - (recent_cpu / 4) - (nice * 2)
   int priority;
-  /* Not yet implemented */
+  priority = conver_f2i_round(sub_inf(PRI_MAX, add_f(div_xbn(_recent_cpu, 4), mul_inf(2, _nice))));
   return priority;
 }
 
@@ -785,8 +785,8 @@ void mlfqs_recent_cpu (struct thread *t) {
   t->recent_cpu = calc_recent_cpu(load_avg, t->recent_cpu, t->nice);
 }
 int calc_recent_cpu(int _load_avg, int _recent_cpu, int _nice) {
-  /* Not yet implemented */
   // return recent_cpu = (2*load_avg)/(2*load_avg + 1) * recent_cpu + nice
+  return add_f(mul_f(div_xby(mul_inf(2, _load_avg), add_inf(1, mul_inf(2, _load_avg))), _recent_cpu), _nice);
 }
 
 
@@ -800,17 +800,17 @@ void mlfqs_load_avg(void) {
   load_avg = calc_load_avg(load_avg, num_ready_threads);
 }
 int calc_load_avg(int _load_avg, int _ready_threads) {
-  /* Not yet implemented */
   // return load_avg = (59/60)*load_avg + (1/60)*ready_threads
+  return add_f(mul_inf((59/60), _load_avg), mul_inf((1/60), _ready_threads));
 }
 
 
 void mlfqs_recent_cpu_incr(void) {
   struct thread *t_cur = thread_current();
   // check if current thread is idle_thread,
-  // if not, increment recent_cpu value of current thread
+  // if not, increase recent_cpu value of current thread by 1
   if (t_cur!=idle_thread)
-    /* Not yet implemented */
+    t_cur->recent_cpu = add_inf(1, t_cur->recent_cpu);
 }
 
 

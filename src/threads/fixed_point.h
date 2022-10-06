@@ -20,13 +20,13 @@ int convert_i2f(int n)
 
 int convert_f2i_round(int x)
 {
-    return x / f;
+    if(x>=0) return (x+f/2)/f;
+    else return (x-f/2)/f;
 }
 
-int convert_f2i_nearest(int x)
+int convert_f2i_round_down(int x)
 {
-    if(x>=0) return x+f/2;
-    else return x-f/2;
+    return x / f;
 }
 
 int add_f(int x, int y)
