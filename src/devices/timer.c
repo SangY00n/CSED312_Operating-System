@@ -96,7 +96,7 @@ timer_sleep (int64_t ticks)
   prev_level = intr_disable ();
 
   //idle thread인지을 체크하기 위하여 thread.c에 thread_check_idle함수 추가
-  ASSERT(thread_check_idle() == 0)
+  ASSERT(thread_check_idle() == 0);
 
   //thread의 wakeup_tick에 ticks를 저장한다.
   cur -> wakeup_tick = start + ticks;
@@ -197,6 +197,11 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+  //매 틱마다 깨워야 할 리스트가 존재하는지 확인한 뒤 깨워야 한다.
+  if(get_next_awake_tick() <= ticks) 
+  {
+    thread_awake(ticks);
+  }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

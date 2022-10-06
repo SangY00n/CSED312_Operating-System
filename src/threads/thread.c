@@ -603,7 +603,8 @@ thread_check_idle(void)
 list.c의 list_insert_ordered 사용 */
 //list_insert_ordered (struct list *list, struct list_elem *elem, list_less_func *less, void *aux)
 
-bool compare_tick(const struct list_elem *a, const struct list_elem *b, void *aux)
+bool
+compare_tick(const struct list_elem *a, const struct list_elem *b, void *aux)
 {
   //a 가 b보다 작으면 true, 아니면 false
   struct thread *A = list_entry(a, struct thread, elem);
@@ -623,7 +624,26 @@ void insert_sleep_thread()
 
 void thread_awake(int64_t ticks)
 {
-  struct thread *thread;//
+  struct list_elem *element; //이 element로 리스트를 돌아가며 확인
+  struct thread *present_thread; //현재 element에 해당하는 thread 저장
+
+  for(element = list_begin(&list_sleep_thread) ; element != list_end(&list_sleep_thread) ; )
+  {
+    present_thread = list_entry(element, struct thread, elem);
+    if(present_thread -> wakeup_tick <= ticks) //현재 틱보다 wakeup tick이 작거나 같으면 sleep 리스트에서 제거하고 unblocking해야한다.
+    {
+      element = list_remove(element); //unblocking 후에 list_remove하면 오류발생. unblocking하면 ready list에 들어가 ready list에서 제거하기 때문이다.
+      thread_unblock(present_thread);
+    }
+    else break;
+  }
+}
+int64_t get_next_awake_tick()
+{
+  struct thread *first_thread;
+  first_thread = list_entry(list_begin(&list_sleep_thread), struct thread, elem);
+  //tick의 오름차순이므로 첫번째 원소가 최소 tick가지는 원소, 즉 next awake tick이다.
+  return first_thread-> wakeup_tick;
 }
 
 /* Offset of `stack' member within `struct thread'.

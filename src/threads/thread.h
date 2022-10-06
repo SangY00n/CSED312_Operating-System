@@ -143,5 +143,5 @@ int thread_check_idle(void);
 list_less_func compare_tick;
 void insert_sleep_thread();
 void thread_awake(int64_t ticks);
-
+int64_t get_next_awake_tick(void);
 #endif /* threads/thread.h */
