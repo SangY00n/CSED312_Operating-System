@@ -824,7 +824,7 @@ void mlfqs_priority(struct thread *t) {
 int calc_priority(fixed_t _recent_cpu, int _nice) {
   // return priority = PRI_MAX - (recent_cpu / 4) - (nice * 2)
   int priority;
-  priority = conver_f2i_round(sub_inf(PRI_MAX, add_f(div_xbn(_recent_cpu, 4), convert_i2f(2*_nice))));
+  priority = convert_f2i_round(sub_inf(PRI_MAX, add_f(div_xbn(_recent_cpu, 4), convert_i2f(2*_nice))));
   return priority;
 }
 
