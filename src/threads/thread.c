@@ -888,19 +888,3 @@ void mlfqs_update_all_priority(void) {
   // after update all, should sort ready_list for new updated priority
   list_sort(&ready_list, thread_compare_priority, NULL);
 }
-
-
-
-
-// 자기 직전 추가한 함수 for timer.c
-void mlfqs_refresh_cur_thread_priority(void) {
-  mlfqs_priority(thread_current());
-  list_sort(&ready_list, thread_compare_priority, NULL);
-  if(thread_current()!=idle_thread) {
-    //priority에 따라 다시 스케쥴링
-    check_list_preemption();
-  }
-
-  // 혹시 여기에서 intr_disable()이 필요하지는 않겠지?
-
-}

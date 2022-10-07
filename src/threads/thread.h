@@ -5,8 +5,6 @@
 #include <list.h>
 #include <stdint.h>
 
-// typedef int int;
-
 
 /* States in a thread's life cycle. */
 enum thread_status
