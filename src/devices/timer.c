@@ -212,9 +212,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
     if(ticks % 4 == 0) //4tick마다 priority 계산
     {
       mlfqs_priority(thread_current());
-      // list_sort(&ready_list, thread_compare_priority, NULL); // 이걸 해야 할지도
-
-      // mlfqs_refresh_cur_thread_priority();
     }
 
   }

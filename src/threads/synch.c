@@ -219,10 +219,12 @@ lock_acquire (struct lock *lock)
       donate_priority(t_cur, 0);
     }
 
-    thread_current()->lock_waiting_for = NULL;
+    
   }
 
   sema_down (&lock->semaphore);
+  if(!thread_mlfqs)
+    thread_current()->lock_waiting_for = NULL;
   lock->holder = thread_current ();
 }
 

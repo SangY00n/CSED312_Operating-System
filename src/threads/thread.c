@@ -129,6 +129,9 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
 
+  /* initialize member variables for advanced scheduler */
+  initial_thread->nice = 0;
+  initial_thread->recent_cpu = 0;
 
 
 }
@@ -384,16 +387,16 @@ thread_set_priority (int new_priority)
   //mlfqs스케쥴러를 사용할때는 새로운 priority를 임의로 설정할 수 없도록 해야 한다.
   if(!thread_mlfqs)
   {
-  thread_current ()->origin_priority = new_priority;
-  // set origin_priority as new one
-  // then, it is nesessary to compare new origin priority and donation priority
-  refresh_priority();
+    thread_current ()->origin_priority = new_priority;
+    // set origin_priority as new one
+    // then, it is nesessary to compare new origin priority and donation priority
+    refresh_priority();
 
-  // after set priority as new one,
-  // compare ready list elements' priority with current's
-  // if current's priority is lower, call thread_yield
-  // do this by calling check_list_preemption()
-  check_list_preemption();
+    // after set priority as new one,
+    // compare ready list elements' priority with current's
+    // if current's priority is lower, call thread_yield
+    // do this by calling check_list_preemption()
+    check_list_preemption();
   }
   else return;
 }
