@@ -204,22 +204,26 @@ timer_interrupt (struct intr_frame *args UNUSED)
   {
     mlfqs_recent_cpu_incr(); //time interrupt마다 recent_cpu 증가
 
-    if(ticks % 4 == 0) //4tick마다 priority 계산
-    {
-      mlfqs_priority(thread_current());
-    }
     if (ticks % TIMER_FREQ == 0) //1초마다(1sec = ticks/TIMER_FREQ)
     {
       mlfqs_load_avg(); //load_avg 계산
       mlfqs_update_all(); //모든 스레드의 priority와 recent cpu계산
     }
+    if(ticks % 4 == 0) //4tick마다 priority 계산
+    {
+      mlfqs_priority(thread_current());
+      // list_sort(&ready_list, thread_compare_priority, NULL); // 이걸 해야 할지도
+
+      // mlfqs_refresh_cur_thread_priority();
+    }
+
   }
 
   //매 틱마다 깨워야 할 리스트가 존재하는지 확인한 뒤 깨워야 한다.
-  if(get_next_awake_tick() <= ticks) 
-  {
-    thread_awake(ticks);
-  }
+  //if(get_next_awake_tick() <= ticks) 
+  //{
+  thread_awake(ticks);
+  //}
  
 }
 

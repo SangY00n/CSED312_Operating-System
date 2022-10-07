@@ -143,14 +143,14 @@ thread_start (void)
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
 
+  /* Initialize load_avg value */
+  load_avg = convert_i2f(0);
+
   /* Start preemptive thread scheduling. */
   intr_enable ();
 
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
-
-  /* Initialize load_avg value */
-  load_avg = convert_i2f(0);
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -420,8 +420,13 @@ thread_set_nice (int nice)
   //nice 계산하였으니 priority 다시 계산
   mlfqs_priority(cur);
 
-  //priority에 따라 다시 스케쥴링
-  check_list_preemption();
+  // sort thread in ready_list for new priority
+  list_sort(&ready_list, thread_compare_priority, NULL);
+
+  if(cur!=idle_thread) {
+    //priority에 따라 다시 스케쥴링
+    check_list_preemption();
+  }
 
   //intr level 이전으로 되돌림
   intr_set_level(prev_level);
@@ -882,4 +887,20 @@ void mlfqs_update_all_priority(void) {
   }
   // after update all, should sort ready_list for new updated priority
   list_sort(&ready_list, thread_compare_priority, NULL);
+}
+
+
+
+
+// 자기 직전 추가한 함수 for timer.c
+void mlfqs_refresh_cur_thread_priority(void) {
+  mlfqs_priority(thread_current());
+  list_sort(&ready_list, thread_compare_priority, NULL);
+  if(thread_current()!=idle_thread) {
+    //priority에 따라 다시 스케쥴링
+    check_list_preemption();
+  }
+
+  // 혹시 여기에서 intr_disable()이 필요하지는 않겠지?
+
 }
