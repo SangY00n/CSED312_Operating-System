@@ -216,11 +216,11 @@ timer_interrupt (struct intr_frame *args UNUSED)
 
   }
 
-  //매 틱마다 깨워야 할 리스트가 존재하는지 확인한 뒤 깨워야 한다.
-  //if(get_next_awake_tick() <= ticks) 
-  //{
-  thread_awake(ticks);
-  //}
+  // 매 틱마다 깨워야 할 리스트가 존재하는지 확인한 뒤 깨워야 한다.
+  if(get_next_awake_tick() <= ticks) 
+  {
+    thread_awake(ticks);
+  }
  
 }
 

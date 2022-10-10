@@ -778,7 +778,7 @@ void donate_priority(struct thread* t, int depth) {
     // donate current thread priority to holder thread
     if (t->priority > t_holder->priority)
       t_holder->priority = t->priority;
-    donate_priority(t_holder, depth+1);
+    donate_priority(t_holder, depth+1); // for nested thread donation
   }
 }
 
