@@ -88,7 +88,21 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  return -1;
+  int exit_code;
+  struct thread *child_thread = get_child_process (child_tid); // get_child_process는 찬호가 구현할 예정
+  
+  if (child_thread == NULL) // child list에 child_tid에 해당하는 child가 없는 경우
+  {
+    return -1;
+  }
+  else {
+    sema_down(&(child_thread->sema_exit)); // child_thread가 끝나기를(thread_exit하기를) 기다리기 시작
+    exit_code = child_thread->exit_status; // 끝난 child_thread 
+    list_remove(&(child_thread->child_elem));
+
+    palloc_free_page (child_thread);
+    return exit_code;
+  }
 }
 
 /* Free the current process's resources. */

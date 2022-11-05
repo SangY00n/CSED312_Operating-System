@@ -328,6 +328,7 @@ thread_tid (void)
 void
 thread_exit (void) 
 {
+  struct thread *cur_t = thread_current ();
   ASSERT (!intr_context ());
 
 #ifdef USERPROG
@@ -339,7 +340,11 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
-  thread_current ()->status = THREAD_DYING;
+
+  cut_t->is_exit = true; // process descriptor에 process 종료 표시
+  sema_up(&(cur_t->sema_exit)); // parent process의 process_wait()에서의 wait을 풀어줌
+
+  cur_t->status = THREAD_DYING;
   schedule ();
   NOT_REACHED ();
 }
@@ -645,7 +650,7 @@ thread_schedule_tail (struct thread *prev)
   if (prev != NULL && prev->status == THREAD_DYING && prev != initial_thread) 
     {
       ASSERT (prev != cur);
-      palloc_free_page (prev);
+      // palloc_free_page (prev); // free 처리하지 않도록 변경
     }
 }
 
