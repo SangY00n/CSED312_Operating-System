@@ -60,11 +60,18 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
+  //메모리에 load 완료될 경우 parent restart(sema up을 통해서)
+  sema_up(&thread_current()->sema_load);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
+    //thread에 is_load 설정해주어야 한다.
+    {
+    thread_current()->is_load = false;
     thread_exit ();
+    }
+  else thread_current()->is_load = true;
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -462,4 +469,23 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+struct thread* get_child_process(int pid) //pid로 자식 thread(process) 찾는 함수
+{
+  struct thread* cur_thread = thread_current();
+  struct thread* child_thread;
+  struct list * child_list = &(cur_thread->list_child_process);
+
+  struct list_elem* elem = list_begin(child_list);
+
+  while(elem != list_end(&all_list))
+  {
+    child_thread = list_entry(elem, struct thread, child_elem);
+    if(child_thread->tid == pid)
+      return child_thread;
+    elem = list_next(elem);
+  }
+  //리스트에 존재하지 않는다면 NULL을 반환
+  return NULL;
 }
