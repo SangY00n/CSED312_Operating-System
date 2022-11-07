@@ -5,6 +5,8 @@
 
 typedef int pid_t;
 
+void check_address(void *address);
+void get_argument(int *esp, int *arg, int count);
 void syscall_init (void);
 void syscall_exit (int status);
 int syscall_wait (pid_t tid);
