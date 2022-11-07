@@ -29,34 +29,34 @@ syscall_handler (struct intr_frame *f)
   //syscall number를 사용하여 syacall 호출
   int syscall_num = *((int*)f->esp);
 
-  switch(syscall_num)
-  {
-    case SYS_HALT: syscall_halt();
+  // switch(syscall_num)
+  // {
+  //   case SYS_HALT: syscall_halt();
 
-    case SYS_EXIT:
+  //   case SYS_EXIT:
 
-    case SYS_EXEC: //한양대 참조
+  //   case SYS_EXEC: //한양대 참조
 
-    case SYS_WAIT:
+  //   case SYS_WAIT:
 
-    case SYS_CREATE:
+  //   case SYS_CREATE:
 
-    case SYS_REMOVE:
+  //   case SYS_REMOVE:
 
-    case SYS_OPEN:
+  //   case SYS_OPEN:
 
-    case SYS_FILESIZE:
+  //   case SYS_FILESIZE:
 
-    case SYS_READ:
+  //   case SYS_READ:
 
-    case SYS_WRITE:
+  //   case SYS_WRITE:
 
-    case SYS_SEEK:
+  //   case SYS_SEEK:
 
-    case SYS_TELL:
+  //   case SYS_TELL:
 
-    case SYS_CLOSE:
-  }
+  //   case SYS_CLOSE:
+  // }
 
 }
 
@@ -70,7 +70,7 @@ pid_t syscall_exec(const char *cmd_line)
   //자식 프로세스 생성 및 실행하는 syscall
   pid_t pid;
   struct thread* child_process;
-  pid = process_execute(cnd_line); //자식 프로세스 생성
+  pid = process_execute(cmd_line); //자식 프로세스 생성
   if(pid == -1) return -1;
   //pid로 자식 검색
   child_process = get_child_process(pid);

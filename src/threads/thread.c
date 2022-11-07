@@ -247,8 +247,8 @@ thread_create (const char *name, int priority,
   }
   #ifdef USERPROG
   //thread에서 새롭게 선언해준 sema포함하여 모두 초기화
-  t->parant = thread_current();//parent 설정
-  list_push_back(&thread_current()->child_list, &t->child_elem)//child 또한 설정해주어야 한다.
+  t->parent = thread_current();//parent 설정
+  list_push_back(&thread_current()->child_list, &t->child_elem); //child 또한 설정해주어야 한다.
 
   //세마포어 초기화
   sema_init(&t->sema_exit, 0);
@@ -353,7 +353,7 @@ thread_exit (void)
   intr_disable ();
   list_remove (&thread_current()->allelem);
 
-  cut_t->is_exit = true; // process descriptor에 process 종료 표시
+  cur_t->is_exit = true; // process descriptor에 process 종료 표시
   sema_up(&(cur_t->sema_exit)); // parent process의 process_wait()에서의 wait을 풀어줌
 
   cur_t->status = THREAD_DYING;

@@ -583,11 +583,11 @@ struct thread* get_child_process(int pid) //pid로 자식 thread(process) 찾는
 {
   struct thread* cur_thread = thread_current();
   struct thread* child_thread;
-  struct list * child_list = &(cur_thread->list_child_process);
+  struct list * child_list = &(cur_thread->child_list);
 
   struct list_elem* elem = list_begin(child_list);
 
-  while(elem != list_end(&all_list))
+  while(elem != list_end(child_list))
   {
     child_thread = list_entry(elem, struct thread, child_elem);
     if(child_thread->tid == pid)
