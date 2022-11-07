@@ -32,6 +32,16 @@ process_execute (const char *file_name)
   tid_t tid;
 
   char *parsed_file_name;
+  char *program_name;
+
+  /* Make a copy of FILE_NAME for Parsing */
+  parsed_file_name = palloc_get_page (0);
+  if (parsed_file_name == NULL)
+    return TID_ERROR;
+  strlcpy (parsed_file_name, file_name, strlen(file_name) + 1);
+  /* Parse file name using parsing function with parsed_file_name */
+  program_name = parse_file_name(parsed_file_name); // file_name에서 맨 앞의 단어(program name)와 두 번째 단어 사이에 널문자 들어가게 됨
+
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -40,18 +50,9 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  /* Make a copy of FILE_NAME for Parsing */
-  parsed_file_name = palloc_get_page (0);
-  if (parsed_file_name = NULL)
-    return TID_ERROR;
-  strlcpy (parsed_file_name, file_name, PGSIZE);
-
-  /* Parse file name using parsing function with parsed_file_name */
-  parse_file_name(parsed_file_name); // file_name에서 맨 앞의 단어(program name)와 두 번째 단어 사이에 널문자 들어가게 됨
-
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (parsed_file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (program_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
 
@@ -541,9 +542,10 @@ struct thread* get_child_process(int pid) //pid로 자식 thread(process) 찾는
 }
 
 
-void parse_file_name(char* s) {
+char* parse_file_name(char* s) {
   char* save_ptr;
   s = strtok_r(s, " ", &save_ptr);
+  return s;
 }
 
 int parse_for_arguments (char **argv, int argc, char *s) {

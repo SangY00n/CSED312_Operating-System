@@ -1,11 +1,13 @@
 #ifndef USERPROG_SYSCALL_H
 #define USERPROG_SYSCALL_H
 
+#include <stdbool.h>
+
 typedef int pid_t;
 
 void syscall_init (void);
 void syscall_exit (int status);
-int syscall_wait (tid_t tid);
+int syscall_wait (pid_t tid);
 
 void syscall_halt();
 pid_t syscall_exec(const char *cmd_line);
