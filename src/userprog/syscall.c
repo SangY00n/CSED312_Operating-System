@@ -100,7 +100,7 @@ bool syscall_create(const char *file, unsigned initial_size)
 bool syscall_remove (const char *file)
 {
   //file(파일명)에 해당하는 파일 제거
-  if (file == NULL) exit(-1) ;
+  if (file == NULL) syscall_exit(-1) ; // exit? syscall_exit로 고쳐보았음
   check_address(file);
 
   return filesys_remove(file);
