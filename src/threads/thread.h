@@ -109,6 +109,11 @@ struct thread
 
     bool is_load;
     bool is_exit;
+
+    /* Member variables for implementation of file descriptor */
+    struct file **fd_table;
+    struct file *file_exec;
+    int fd_counter;
 #endif
 
     /* Owned by thread.c. */

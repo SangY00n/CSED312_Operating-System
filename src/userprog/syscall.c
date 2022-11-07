@@ -8,6 +8,8 @@
 #include "devices/shutdown.h"
 #ifdef USERPROG
 #include "userprog/process.h"
+#include "devices/input.h"
+#include "filesys/file.h"
 #endif
 
 
@@ -17,6 +19,7 @@ void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(&filesys_lock);
 }
 
 void check_address(void *address)
@@ -110,13 +113,6 @@ syscall_handler (struct intr_frame *f)
 
 }
 
-// static void
-// syscall_handler (struct intr_frame *f)
-// {
-//   printf("syscall!!\n");
-//   return;
-// }
-
 void syscall_halt()
 {
   shutdown_power_off(); //devices/shutdown.h include
@@ -162,16 +158,6 @@ bool syscall_remove (const char *file)
   //성공 여부를 반환
 }
 
-int syscall_open (const char *file)
-{
-
-}
-
-int syscall_filesize (int fd)
-{
-
-}
-
 void
 syscall_exit (int status)
 {
@@ -182,7 +168,155 @@ syscall_exit (int status)
 }
 
 int
-syscall_wait (tid_t tid)
+syscall_wait (pid_t tid)
 {
   return process_wait(tid); // 찬호 코드에서는 이거 지워져 있음
+}
+
+
+
+
+// syscall_open
+int
+syscall_open(const char *file) 
+{
+  struct thread *cur_t = thread_current();
+  struct file *fp;
+
+  // address 를 check 하는 함수 따로 만들어줘야할지 생각해봐야 함
+  // 현재 check_address는 주소가 유저영역이 아니라면 exit하는 형태
+  // 주소가 유저영역이 아니어도 되나?
+  check_address(file);
+
+  lock_acquire(&filesys_lock);
+  if(file==NULL) {
+    lock_release(&filesys_lock);
+    syscall_exit(-1);
+  }
+
+  fp = filesys_open(file);
+  if(fp==NULL) {
+    lock_release(&filesys_lock);
+    return -1;
+  } else {
+    if(strcmp(cur_t->name, file)==0) {
+      file_deny_write(fp);
+    }
+    cur_t->fd_table[cur_t->fd_counter] = fp;
+    lock_release(&filesys_lock);
+    return cur_t->fd_counter++;
+  }
+}
+
+int
+syscall_filesize(int fd)
+{
+  struct thread *cur_t = thread_current();
+  if (cur_t->fd_table[fd]==NULL)
+    return -1;
+  else
+    return file_length(cur_t->fd_table[fd]);
+}
+
+
+
+// syscall_read()는 file_read() in file.h 이용 - 파일 접근 전에 lock 획득 필요
+// syscall_write()은 file_write() in file.h 이용 - 파일 접근 전에 lock 획득 필요
+
+// input_getc(void) in devices/input.h 키보드로 입력 받은 문자를 반환
+
+int
+syscall_read (int fd, void *buffer, unsigned size)
+{
+  int read_result;
+  struct thread *cur_t = thread_current();
+  check_address(buffer);
+  if(fd<0 || fd>cur_t->fd_counter) {
+    syscall_exit(-1);
+  }
+  else if (fd == 0) { // 이거 맞나? 여차 하면 걍 날리자
+    lock_acquire(&filesys_lock);
+    read_result = input_getc();
+    lock_release(&filesys_lock);
+  } else {
+    struct file *fp = cur_t->fd_table[fd];
+    if(fp==NULL)
+      syscall_exit(-1);
+    
+    lock_acquire(&filesys_lock);
+    read_result = file_read(fp, buffer, size);
+    lock_release(&filesys_lock);
+  }
+
+  return read_result;
+}
+
+// putbuf (const char *, size_t) in stdio.h 문자열을 화면에 출력
+int
+syscall_write (int fd, void *buffer, unsigned size)
+{
+  int write_result;
+  struct thread *cur_t = thread_current();
+  if(fd<1 || fd>=cur_t->fd_counter) {
+    syscall_exit(-1);
+  } else if (fd == 1) {
+    lock_acquire(&filesys_lock);
+    putbuf(buffer, size);
+    lock_release(&filesys_lock);
+    return size;
+  } else {
+    struct file* fp = cur_t->fd_table[fd];
+    if(fp == NULL)
+      syscall_exit(-1);
+    lock_acquire(&filesys_lock);
+    write_result = file_write(fp, buffer, size);
+    lock_release(&filesys_lock);
+  }
+
+  return write_result;
+}
+
+// 열려있는 파일의 offset을 이동. 현재 offset을 기준으로 position만큼 이동
+void
+syscall_seek(int fd, unsigned position)
+{
+  struct file *fp;
+  fp = thread_current()->fd_table[fd];
+  if(fp!=NULL)
+    file_seek(fp, position);
+}
+
+unsigned
+syscall_tell (int fd)
+{
+  struct file *fp;
+  fp = thread_current()->fd_table[fd];
+  if(fp==NULL)
+    return -1;
+  else
+    return file_tell(fp);
+}
+
+void
+syscall_close(int fd)
+{
+  struct file *fp;
+  struct thread *cur_t = thread_current();
+  int fd_walker;
+
+  if(fd<2 || fd>=cur_t->fd_counter) {
+    syscall_exit(-1);
+  } else {
+    fp = cur_t->fd_table[fd];
+    if(fp!=NULL) {
+      file_close(fp);
+      cur_t->fd_table[fd] = NULL;
+      fd_walker = fd;
+      while(fd_walker<cur_t->fd_counter) {
+        cur_t->fd_table[fd_walker] = cur->fd_table[fd_walker+1];
+        fd_walker++;
+      }
+      cur_t->fd_counter--;
+    }
+  }
 }
