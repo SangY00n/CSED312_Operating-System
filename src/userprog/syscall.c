@@ -22,44 +22,93 @@ syscall_init (void)
   lock_init(&filesys_lock);
 }
 
+void check_address(void *address)
+{
+  //valid 영역 : 0x8048000~0xc0000000 핀토스 공식 문서 참조
+  if(address => 0xc0000000 || address < 0x8048000 || address == NULL)
+    exit(-1); //유저 영역이 아니라면 exit
+  
+  else return;
+}
+
+//유저 스택의 인자들을 arg에 저장
+void
+get_argument(void *esp, int *arg, int count)
+{
+  int i;
+  for ( i = 0 ; i < count; i ++)
+  {
+    check_address(esp + 1 + i);
+    arg[i] = *(esp + 1 + i);
+  }
+}
+
 //syscall.h 헤더파일 작성할 것!!!!!!!!!!!!!!!!!!!!!!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 static void
 syscall_handler (struct intr_frame *f) 
 {
+  uint32_t *sp = f->esp;
   //스택 포인터 valid check
-  check_address(f->esp);
-  
+  check_address(sp);
 
+  thread_current()->esp = sp; //stack pointer 저장
   //syscall number를 사용하여 syacall 호출
-  int syscall_num = *((int*)f->esp);
+  int syscall_num = *((int*)sp);
+  int argv[3];
 
   switch(syscall_num)
   {
-    case SYS_HALT: syscall_halt();
-
+    case SYS_HALT:
+      syscall_halt();
+      break;
     case SYS_EXIT:
-
-    case SYS_EXEC: //한양대 참조
-
+      get_argument(sp, argv, 1);
+      syscall_exit(argv[0]);
+      break;
+    case SYS_EXEC:
+      get_argument(sp, argv, 1);
+      f->eax = syscall_exec(argv[0]);
+      break;
     case SYS_WAIT:
-
+      get_argument(sp, argv, 1);
+      f->eax = syscall_wait(argv[0]);
+      break;
     case SYS_CREATE:
-
+      get_argument(sp, argv, 2);
+      f-> eax = syscall_create(argv[0], argv[1]);
+      break;
     case SYS_REMOVE:
-
+      get_argument(sp, argv, 1);
+      f->eax = syscall_remove(argv[0]);
+      break;
     case SYS_OPEN:
-
+      get_argument (f->esp, argv, 1);
+      f->eax = syscall_open (argv[0]);
+      break;
     case SYS_FILESIZE:
-
+      get_argument (f->esp, argv, 1);
+      f->eax = syscall_filesize(argv[0]);
+      break;
     case SYS_READ:
-
+      get_argument (f->esp, argv, 3);
+      f->eax = syscall_read(argv[0], argv[1], argv[2]);
+      break;
     case SYS_WRITE:
-
+      get_argument (f->esp, argv, 3);
+      f->eax = syscall_write(argv[0], argv[1], argv[2]);
+      break;
     case SYS_SEEK:
-
+      get_argument (f->esp, argv, 2);
+      f->eax = syscall_seek(argv[0], argv[1]);
+      break;
     case SYS_TELL:
-
-    case SYS_CLOSE: printf("syscall!!!\n");
+      get_argument (f->esp, argv, 1);
+      f->eax = syscall_tell(argv[0]);
+      break;
+    case SYS_CLOSE:
+      get_argument(f -> esp, argv, 1);
+      f->eax = syscall_close(argv[0]);
+      break;
   }
 
 }
