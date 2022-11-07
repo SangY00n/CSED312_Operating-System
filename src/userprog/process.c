@@ -155,6 +155,7 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  int fd_walker;
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -172,6 +173,16 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+  
+  file_close(cur->file_exec);
+  fd_walker = cur->fd_counter-1;
+  while(fd_walker>1) {
+    syscall_close(fd_walker); // 구현 필요
+    fd_walker--;
+  }
+  palloc_free_page(cur->fd_table);
+  
+
 }
 
 /* Sets up the CPU for running user code in the current
@@ -603,3 +614,21 @@ void stack_argument_init(char **argv, int argc, void **esp) {
   *esp = *esp - 4;
   **((uint32_t**)esp) = 0;
 }
+
+int fd_table_add_file (struct file *f) {
+  struct thread *cur_t = thread_current();
+  cur_t->fd_table[cur_t->fd_counter] = f;
+  return cur_t->fd_counter++;
+}
+
+void fd_table_close_file (int fd) {
+  struct thread *cur_t = thread_current();
+  file_close(cur_t->fd_table[fd]);
+  cur_t->fd_table[fd]=NULL;
+}
+
+struct file *process_get_file (int fd) {
+  struct thread *cur_t = thread_current();
+  return cur_t->fd_table[fd]; // fd_table에 파일 없을 시 null을 리턴?
+}
+

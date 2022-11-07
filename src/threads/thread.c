@@ -198,9 +198,6 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
-  /* Add to run queue. */
-  thread_unblock (t);
-
   #ifdef USERPROG
   //thread에서 새롭게 선언해준 sema포함하여 모두 초기화
   t->parent = thread_current();//parent 설정
@@ -213,7 +210,18 @@ thread_create (const char *name, int priority,
   //load, exit status
   t->is_load = false;
   t->is_exit = false;
+
+  // allocation of memory for file descriptor table
+  t->fd_table = palloc_get_page(PAL_ZERO);
+  if (t->fd_table == NULL) 
+    return TID_ERROR;
+  t->file_exec = NULL;
+  t->fd_counter = 2;
   #endif
+
+  /* Add to run queue. */
+  thread_unblock (t);
+  
   return tid;
 }
 
