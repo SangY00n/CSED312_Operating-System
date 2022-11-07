@@ -82,15 +82,20 @@ start_process (void *file_name_)
   argc = parse_for_arguments(argv, argc, file_name);
 
   success = load (argv[0], &if_.eip, &if_.esp);
-  
+    //메모리에 load 완료될 경우 parent restart(sema up을 통해서)
+  sema_up(&thread_current()->sema_load);
+
 
   /* If load failed, quit. */
   if (!success) {
     palloc_free_page (file_name);
+    //thread에 is_load 설정해주어야 한다.
+    thread_current()->is_load = false;
     thread_exit ();
   }
   else {
     stack_argument_init(argv, argc, &if_.esp);
+    thread_current()->is_load = true;
   }
 
 
@@ -123,7 +128,21 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  return -1;
+  int exit_code;
+  struct thread *child_thread = get_child_process (child_tid); // get_child_process는 찬호가 구현할 예정
+  
+  if (child_thread == NULL) // child list에 child_tid에 해당하는 child가 없는 경우
+  {
+    return -1;
+  }
+  else {
+    sema_down(&(child_thread->sema_exit)); // child_thread가 끝나기를(thread_exit하기를) 기다리기 시작
+    exit_code = child_thread->exit_status; // 끝난 child_thread 
+    list_remove(&(child_thread->child_elem));
+
+    palloc_free_page (child_thread);
+    return exit_code;
+  }
 }
 
 /* Free the current process's resources. */
@@ -559,4 +578,22 @@ void stack_argument_init(char **argv, int argc, void **esp) {
   /* Push Return Address (fake address) */
   *esp = *esp - 4;
   **((uint32_t**)esp) = 0;
+}
+struct thread* get_child_process(int pid) //pid로 자식 thread(process) 찾는 함수
+{
+  struct thread* cur_thread = thread_current();
+  struct thread* child_thread;
+  struct list * child_list = &(cur_thread->list_child_process);
+
+  struct list_elem* elem = list_begin(child_list);
+
+  while(elem != list_end(&all_list))
+  {
+    child_thread = list_entry(elem, struct thread, child_elem);
+    if(child_thread->tid == pid)
+      return child_thread;
+    elem = list_next(elem);
+  }
+  //리스트에 존재하지 않는다면 NULL을 반환
+  return NULL;
 }

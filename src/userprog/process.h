@@ -11,4 +11,5 @@ static void parse_file_name(char* s);
 int parse_for_arguments (char **argv, int argc, char *s);
 void stack_argument_init(char **argv, int argc, void **esp);
 
+struct thread* get_child_process(int pid);
 #endif /* userprog/process.h */
