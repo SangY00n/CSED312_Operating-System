@@ -203,7 +203,7 @@ thread_create (const char *name, int priority,
 
   #ifdef USERPROG
   //thread에서 새롭게 선언해준 sema포함하여 모두 초기화
-  t->parant = thread_current();//parent 설정
+  t->parent = thread_current();//parent 설정
   list_push_back(&thread_current()->child_list, &t->child_elem); //child 또한 설정해주어야 한다.
 
   //세마포어 초기화
@@ -213,6 +213,7 @@ thread_create (const char *name, int priority,
   //load, exit status
   t->is_load = false;
   t->is_exit = false;
+
   #endif
   return tid;
 }

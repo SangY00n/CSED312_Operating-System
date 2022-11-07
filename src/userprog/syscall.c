@@ -23,41 +23,69 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
+  uint32_t *sp = f->esp;
   //스택 포인터 valid check
-  check_address(f->esp);
-  
+  check_address(sp);
 
+  thread_current()->esp = sp; //stack pointer 저장
   //syscall number를 사용하여 syacall 호출
-  int syscall_num = *((int*)f->esp);
-
-  // switch(syscall_num)
-  // {
-  //   case SYS_HALT: syscall_halt();
-
-  //   case SYS_EXIT:
-
-  //   case SYS_EXEC: //한양대 참조
-
-  //   case SYS_WAIT:
-
-  //   case SYS_CREATE:
-
-  //   case SYS_REMOVE:
-
-  //   case SYS_OPEN:
-
-  //   case SYS_FILESIZE:
-
-  //   case SYS_READ:
-
-  //   case SYS_WRITE:
-
-  //   case SYS_SEEK:
-
-  //   case SYS_TELL:
-
-  //   case SYS_CLOSE:
-  // }
+  int syscall_num = *((int*)sp);
+  int argv[3];
+  switch(syscall_num)
+  {
+    case SYS_HALT:
+      syscall_halt();
+      break;
+    case SYS_EXIT:
+      get_argument(sp, argv, 1);
+      syscall_exit(argv[0]);
+      break;
+    case SYS_EXEC:
+      get_argument(sp, argv, 1);
+      f->eax = syscall_exec(argv[0]);
+      break;
+    case SYS_WAIT:
+      get_argument(sp, argv, 1);
+      f->eax = syscall_wait(argv[0]);
+      break;
+    case SYS_CREATE:
+      get_argument(sp, argv, 2);
+      f-> eax = syscall_create(argv[0], argv[1]);
+      break;
+    case SYS_REMOVE:
+      get_argument(sp, argv, 1);
+      f->eax = syscall_remove(argv[0]);
+      break;
+    case SYS_OPEN:
+      get_argument (f->esp, argv, 1);
+      f->eax = syscall_open (argv[0]);
+      break;
+    case SYS_FILESIZE:
+      get_argument (f->esp, argv, 1);
+      f->eax = syscall_filesize(argv[0]);
+      break;
+    case SYS_READ:
+      get_argument (f->esp, argv, 3);
+      f->eax = syscall_read(argv[0], argv[1], argv[2]);
+      break;
+    case SYS_WRITE:
+      get_argument (f->esp, argv, 3);
+      f->eax = syscall_write(argv[0], argv[1], argv[2]);
+      break;
+    case SYS_SEEK:
+      get_argument (f->esp, argv, 2);
+      f->eax = syscall_seek(argv[0], argv[1]);
+      break;
+    case SYS_TELL:
+      get_argument (f->esp, argv, 1);
+      f->eax = syscall_tell(argv[0]);
+      break;
+    case SYS_CLOSE:
+      get_argument(f -> esp, argv, 1);
+      f->eax = syscall_close(argv[0]);
+      break;
+    case default: ASSERT("not defined syscall number!!");
+  }
 
 }
 
