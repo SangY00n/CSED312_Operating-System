@@ -201,6 +201,19 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  #ifdef USERPROG
+  //thread에서 새롭게 선언해준 sema포함하여 모두 초기화
+  t->parant = thread_current();//parent 설정
+  list_push_back(&thread_current()->child_list, &t->child_elem); //child 또한 설정해주어야 한다.
+
+  //세마포어 초기화
+  sema_init(&t->sema_exit, 0);
+  sema_init(&t->sema_load, 0);
+
+  //load, exit status
+  t->is_load = false;
+  t->is_exit = false;
+  #endif
   return tid;
 }
 
@@ -281,6 +294,7 @@ void
 thread_exit (void) 
 {
   ASSERT (!intr_context ());
+  struct thread *cur_t = thread_current ();
 
 #ifdef USERPROG
   process_exit ();
@@ -291,7 +305,13 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
-  thread_current ()->status = THREAD_DYING;
+  
+  cur_t->is_exit = true; // process descriptor에 process 종료 표시
+  sema_up(&(cur_t->sema_exit)); // parent process의 process_wait()에서의 wait을 풀어줌
+
+  cur_t->status = THREAD_DYING;
+
+
   schedule ();
   NOT_REACHED ();
 }
@@ -467,6 +487,12 @@ init_thread (struct thread *t, const char *name, int priority)
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
+
+  #ifdef USERPROG
+  list_init(&t->child_list); //추가적으로 선언해준 자식 리스트 초기화 필요
+
+  #endif
+
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -538,7 +564,7 @@ thread_schedule_tail (struct thread *prev)
   if (prev != NULL && prev->status == THREAD_DYING && prev != initial_thread) 
     {
       ASSERT (prev != cur);
-      palloc_free_page (prev);
+      // palloc_free_page (prev); // free 처리하지 않도록 변경
     }
 }
 
