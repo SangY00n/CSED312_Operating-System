@@ -18,3 +18,11 @@ syscall_handler (struct intr_frame *f UNUSED)
   printf ("system call!\n");
   thread_exit ();
 }
+
+void syscall_exit(int status)
+{
+  struct thread *running_thread = thread_current();
+  /* running thread의 pcb에 exit status 저장 */
+  printf ("%s: exit(%d)\n", running_thread->name, status);
+  thread_exit();
+}

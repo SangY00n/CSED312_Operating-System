@@ -110,6 +110,9 @@ struct thread
     int nice;
     int recent_cpu;
 
+    /* For Process Termination Messages */
+    int exit_code; // 이렇게 그대로 구현할 것인지 생각해봐야 함
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */

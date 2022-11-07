@@ -31,6 +31,8 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
 
+  char *parsed_file_name;
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
@@ -38,10 +40,23 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  /* Make a copy of FILE_NAME for Parsing */
+  parsed_file_name = palloc_get_page (0);
+  if (parsed_file_name = NULL)
+    return TID_ERROR;
+  strlcpy (parsed_file_name, file_name, PGSIZE);
+
+  /* Parse file name using parsing function with parsed_file_name */
+  parse_file_name(parsed_file_name); // file_name에서 맨 앞의 단어(program name)와 두 번째 단어 사이에 널문자 들어가게 됨
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (parsed_file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
+
+  /* Free page for parsed_file_name */
+  palloc_free_page (parsed_file_name);
+
   return tid;
 }
 
@@ -59,12 +74,32 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+
+
+  /* Parse file_name to stack arguments */
+  char ** argv = palloc_get_page(0);
+  int argc = 0;
+  argc = parse_for_arguments(argv, argc, file_name);
+
+  success = load (argv[0], &if_.eip, &if_.esp);
+  
 
   /* If load failed, quit. */
-  palloc_free_page (file_name);
-  if (!success) 
+  if (!success) {
+    palloc_free_page (file_name);
     thread_exit ();
+  }
+  else {
+    stack_argument_init(argv, argc, &if_.esp);
+  }
+
+
+  palloc_free_page (file_name);
+  /* Free argv */
+  palloc_free_page(argv);
+
+  /* for Debugging */
+  hex_dump(if_.esp , if_.esp , PHYS_BASE - if_.esp , true);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -462,4 +497,66 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+
+static void parse_file_name(char* s) {
+  char* save_ptr;
+  s = strtok_r(s, " ", &save_ptr);
+}
+
+int parse_for_arguments (char **argv, int argc, char *s) {
+  char *token, *save_ptr;
+
+  for(token = strtok_r (s, " ", &save_ptr);token!=NULL;token = strtok_r (NULL, " ", &save_ptr)) {
+    *(argv + argc) = token;
+    argc++;
+  }
+
+  return argc;
+}
+
+void stack_argument_init(char **argv, int argc, void **esp) {
+  int i, size;
+  char *init_esp = *esp; // for pushing Arguments' address
+  char *stack_argv;
+
+  /* Following 80x86 Calling Convention, push arguments into stack
+     Arguments: Right -> Left (Stack: Top -> Down)
+  */
+  for (i = argc - 1; i>=0; i--) {
+    size = strlen(argv[i]) + 1;
+    *esp = *esp - size;
+    strlcpy(*esp, argv[i], size);
+  }
+
+  /* Align the stack (word) */
+  while((uint32_t)(*esp) % 4 != 0) {
+    *esp = *esp - 1;
+  }
+
+  /* Push 0 */
+  *esp = *esp - 4;
+  **((uint32_t **)esp) = 0;
+
+  /* Push Arguments' address */
+  for (i=argc - 1; i>=0; i--) {
+    size = strlen(argv[i]) + 1;
+    init_esp = init_esp - size;
+    *esp = *esp - 4;
+    **((uint32_t**)esp) = init_esp;
+  }
+
+  /* Push argv */
+  stack_argv = *esp;
+  *esp = *esp - 4;
+  **((uint32_t**)esp) = stack_argv;
+
+  /* Push argc */
+  *esp = *esp - 4;
+  **((uint32_t**)esp) = argc;
+
+  /* Push Return Address (fake address) */
+  *esp = *esp - 4;
+  **((uint32_t**)esp) = 0;
 }
