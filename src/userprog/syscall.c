@@ -30,36 +30,43 @@ syscall_handler (struct intr_frame *f)
   //syscall number를 사용하여 syacall 호출
   int syscall_num = *((int*)f->esp);
 
-  // switch(syscall_num)
-  // {
-  //   case SYS_HALT: syscall_halt();
+  switch(syscall_num)
+  {
+    case SYS_HALT: syscall_halt();
 
-  //   case SYS_EXIT:
+    case SYS_EXIT:
 
-  //   case SYS_EXEC: //한양대 참조
+    case SYS_EXEC: //한양대 참조
 
-  //   case SYS_WAIT:
+    case SYS_WAIT:
 
-  //   case SYS_CREATE:
+    case SYS_CREATE:
 
-  //   case SYS_REMOVE:
+    case SYS_REMOVE:
 
-  //   case SYS_OPEN:
+    case SYS_OPEN:
 
-  //   case SYS_FILESIZE:
+    case SYS_FILESIZE:
 
-  //   case SYS_READ:
+    case SYS_READ:
 
-  //   case SYS_WRITE:
+    case SYS_WRITE:
 
-  //   case SYS_SEEK:
+    case SYS_SEEK:
 
-  //   case SYS_TELL:
+    case SYS_TELL:
 
-  //   case SYS_CLOSE:
-  // }
+    case SYS_CLOSE:
+  }
 
 }
+
+// static void
+// syscall_handler (struct intr_frame *f)
+// {
+//   printf("syscall!!\n");
+//   return;
+// }
 
 void syscall_halt()
 {
@@ -88,21 +95,21 @@ bool syscall_create(const char *file, unsigned initial_size)
   //file 의 이름, initial size의 크기를 가지는 파일 생성 함수(생성만 하고 openg하지는 X)
   //filesys/filesys.h include
   // bool filesys_create (const char *name, off_t initial_size) 함수 사용
-  if (file == NULL) exit(-1) ; 
+  if (file == NULL) syscall_exit(-1) ; 
   check_address(file);
   //널포인터 및 user 영역 확인
 
-  return filesys_create(file, initial_size)
+  return filesys_create(file, initial_size);
   //성공 여부를 반환
 }
 
 bool syscall_remove (const char *file)
 {
   //file(파일명)에 해당하는 파일 제거
-  if (file == NULL) exit(-1) ;
+  if (file == NULL) syscall_exit(-1) ;
   check_address(file);
 
-  return filesys_remove(file)
+  return filesys_remove(file);
   //성공 여부를 반환
 }
 
