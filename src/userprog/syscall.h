@@ -11,7 +11,7 @@ struct lock filesys_lock; // thread *holder와 binary semaphore를 가짐
 
 void syscall_init (void);
 void check_address(void *addresss);
-void get_argument(void *esp, int *arg, int count);
+void get_argument(int *esp, int *arg, int count);
 
 void syscall_halt();
 pid_t syscall_exec(const char *cmd_line);

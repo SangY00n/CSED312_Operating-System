@@ -25,15 +25,15 @@ syscall_init (void)
 void check_address(void *address)
 {
   //valid 영역 : 0x8048000~0xc0000000 핀토스 공식 문서 참조
-  if(address => 0xc0000000 || address < 0x8048000 || address == NULL)
-    exit(-1); //유저 영역이 아니라면 exit
+  if(address >= 0xc0000000 || address < 0x8048000 || address == NULL)
+    syscall_exit(-1); //유저 영역이 아니라면 exit
   
   else return;
 }
 
 //유저 스택의 인자들을 arg에 저장
 void
-get_argument(void *esp, int *arg, int count)
+get_argument(int *esp, int *arg, int count)
 {
   int i;
   for ( i = 0 ; i < count; i ++)
@@ -51,7 +51,6 @@ syscall_handler (struct intr_frame *f)
   //스택 포인터 valid check
   check_address(sp);
 
-  thread_current()->esp = sp; //stack pointer 저장
   //syscall number를 사용하여 syacall 호출
   int syscall_num = *((int*)sp);
   int argv[3];
@@ -99,7 +98,7 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_SEEK:
       get_argument (f->esp, argv, 2);
-      f->eax = syscall_seek(argv[0], argv[1]);
+      syscall_seek(argv[0], argv[1]);
       break;
     case SYS_TELL:
       get_argument (f->esp, argv, 1);
@@ -107,7 +106,7 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_CLOSE:
       get_argument(f -> esp, argv, 1);
-      f->eax = syscall_close(argv[0]);
+      syscall_close(argv[0]);
       break;
   }
 
@@ -313,7 +312,7 @@ syscall_close(int fd)
       cur_t->fd_table[fd] = NULL;
       fd_walker = fd;
       while(fd_walker<cur_t->fd_counter) {
-        cur_t->fd_table[fd_walker] = cur->fd_table[fd_walker+1];
+        cur_t->fd_table[fd_walker] = cur_t->fd_table[fd_walker+1];
         fd_walker++;
       }
       cur_t->fd_counter--;
