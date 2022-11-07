@@ -113,13 +113,6 @@ syscall_handler (struct intr_frame *f)
 
 }
 
-// static void
-// syscall_handler (struct intr_frame *f)
-// {
-//   printf("syscall!!\n");
-//   return;
-// }
-
 void syscall_halt()
 {
   shutdown_power_off(); //devices/shutdown.h include
@@ -175,7 +168,7 @@ syscall_exit (int status)
 }
 
 int
-syscall_wait (tid_t tid)
+syscall_wait (pid_t tid)
 {
   return process_wait(tid); // 찬호 코드에서는 이거 지워져 있음
 }
@@ -233,7 +226,8 @@ syscall_filesize(int fd)
 // input_getc(void) in devices/input.h 키보드로 입력 받은 문자를 반환
 
 int
-syscall_read (int fd, void *buffer, unsigned size) {
+syscall_read (int fd, void *buffer, unsigned size)
+{
   int read_result;
   struct thread *cur_t = thread_current();
   check_address(buffer);
@@ -259,7 +253,8 @@ syscall_read (int fd, void *buffer, unsigned size) {
 
 // putbuf (const char *, size_t) in stdio.h 문자열을 화면에 출력
 int
-syscall_write (int fd, void *buffer, unsigned size) {
+syscall_write (int fd, void *buffer, unsigned size)
+{
   int write_result;
   struct thread *cur_t = thread_current();
   if(fd<1 || fd>=cur_t->fd_counter) {
