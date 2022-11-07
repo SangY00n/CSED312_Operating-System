@@ -31,6 +31,7 @@ syscall_handler (struct intr_frame *f)
   //syscall number를 사용하여 syacall 호출
   int syscall_num = *((int*)sp);
   int argv[3];
+
   switch(syscall_num)
   {
     case SYS_HALT:
@@ -84,7 +85,6 @@ syscall_handler (struct intr_frame *f)
       get_argument(f -> esp, argv, 1);
       f->eax = syscall_close(argv[0]);
       break;
-    case default: ASSERT("not defined syscall number!!");
   }
 
 }
