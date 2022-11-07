@@ -19,6 +19,27 @@ syscall_init (void)
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
+void check_address(void *address)
+{
+  //valid 영역 : 0x8048000~0xc0000000 핀토스 공식 문서 참조
+  if(address => 0xc0000000 || address < 0x8048000 || address == NULL)
+    exit(-1); //유저 영역이 아니라면 exit
+  
+  else return;
+}
+
+//유저 스택의 인자들을 arg에 저장
+void
+get_argument(void *esp, int *arg, int count)
+{
+  int i;
+  for ( i = 0 ; i < count; i ++)
+  {
+    check_address(esp + 1 + i);
+    arg[i] = *(esp + 1 + i);
+  }
+}
+
 //syscall.h 헤더파일 작성할 것!!!!!!!!!!!!!!!!!!!!!!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 static void
 syscall_handler (struct intr_frame *f) 
