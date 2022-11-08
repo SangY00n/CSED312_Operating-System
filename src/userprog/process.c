@@ -8,6 +8,7 @@
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
+#include "userprog/syscall.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
@@ -174,14 +175,13 @@ process_exit (void)
       pagedir_destroy (pd);
     }
   
-  file_close(cur->file_exec);
+  file_close(cur->file_exec); // 위에서 file_exec을 file로 지정해주는 순간 여기서 Kernel Panic.. 그리고 나도 Panic ㅜㅜ
   fd_walker = cur->fd_counter-1;
   while(fd_walker>1) {
-    syscall_close(fd_walker); // 구현 필요
+    syscall_close(fd_walker);
     fd_walker--;
   }
   palloc_free_page(cur->fd_table);
-  
 
 }
 
@@ -284,6 +284,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
   bool success = false;
   int i;
 
+  
+
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
@@ -291,12 +293,19 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
+  lock_acquire(&filesys_lock); // lock 걸고 연다. executable 파일에 대한 write을 denying해야 하므로
+
   file = filesys_open (file_name);
   if (file == NULL) 
     {
+      lock_release(&filesys_lock); // 실패해도 lock 해제
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
+  
+  t->file_exec = file; // 이걸 하면 갑자기 다 FAIL 뜸.. 이유는 모르겠다. 해야할 것 같은디
+  file_deny_write(file); // for denying writes to executables
+  lock_release(&filesys_lock); // 파일 열고 lock 해제
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -381,7 +390,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  // file_close (file);
   return success;
 }
 
