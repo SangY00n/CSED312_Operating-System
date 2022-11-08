@@ -98,6 +98,8 @@ start_process (void *file_name_)
   }
   else {
     stack_argument_init(argv, argc, &if_.esp);
+    /* for Debugging */
+    // hex_dump(if_.esp , if_.esp , PHYS_BASE - if_.esp , true);
     thread_current()->is_load = true;
   }
 
@@ -105,8 +107,6 @@ start_process (void *file_name_)
   /* Free argv */
   palloc_free_page(argv);
 
-  /* for Debugging */
-  hex_dump(if_.esp , if_.esp , PHYS_BASE - if_.esp , true);
 
 
 
@@ -614,21 +614,3 @@ void stack_argument_init(char **argv, int argc, void **esp) {
   *esp = *esp - 4;
   **((uint32_t**)esp) = 0;
 }
-
-int fd_table_add_file (struct file *f) {
-  struct thread *cur_t = thread_current();
-  cur_t->fd_table[cur_t->fd_counter] = f;
-  return cur_t->fd_counter++;
-}
-
-void fd_table_close_file (int fd) {
-  struct thread *cur_t = thread_current();
-  file_close(cur_t->fd_table[fd]);
-  cur_t->fd_table[fd]=NULL;
-}
-
-struct file *process_get_file (int fd) {
-  struct thread *cur_t = thread_current();
-  return cur_t->fd_table[fd]; // fd_table에 파일 없을 시 null을 리턴?
-}
-

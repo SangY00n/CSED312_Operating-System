@@ -91,11 +91,11 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_READ:
       get_argument (f->esp, argv, 3);
-      // f->eax = syscall_read(argv[0], argv[1], argv[2]);
+      f->eax = syscall_read(argv[0], argv[1], argv[2]);
       break;
     case SYS_WRITE:
       get_argument (f->esp, argv, 3);
-      // f->eax = syscall_write(argv[0], argv[1], argv[2]);
+      f->eax = syscall_write(argv[0], argv[1], argv[2]);
       break;
     case SYS_SEEK:
       get_argument (f->esp, argv, 2);
@@ -103,7 +103,7 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_TELL:
       get_argument (f->esp, argv, 1);
-      // f->eax = syscall_tell(argv[0]);
+      f->eax = syscall_tell(argv[0]);
       break;
     case SYS_CLOSE:
       get_argument(f -> esp, argv, 1);
