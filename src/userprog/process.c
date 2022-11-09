@@ -175,7 +175,7 @@ process_exit (void)
       pagedir_destroy (pd);
     }
   
-  file_close(cur->file_exec); // 위에서 file_exec을 file로 지정해주는 순간 여기서 Kernel Panic.. 그리고 나도 Panic ㅜㅜ
+  file_close(cur->file_exec); // 위에서 file_exec을 file로 지정해주는 순간 여기서 Kernel Panic.. 그리고 나도 Panic ㅜㅜ -> load()에 있던 file_close 지워서 해결 완료
   fd_walker = cur->fd_counter-1;
   while(fd_walker>1) {
     syscall_close(fd_walker);
@@ -304,6 +304,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
   
   t->file_exec = file; // 이걸 하면 갑자기 다 FAIL 뜸.. 이유는 모르겠다. 해야할 것 같은디
+  // -> load()와 proces_exit()에서 각각 file_close()를 호출해서 문제였음. load()에 있던 걸 지워줌 -> 해결 완료
   file_deny_write(file); // for denying writes to executables
   lock_release(&filesys_lock); // 파일 열고 lock 해제
 
