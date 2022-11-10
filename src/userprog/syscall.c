@@ -228,13 +228,13 @@ syscall_filesize(int fd)
 int
 syscall_read (int fd, void *buffer, unsigned size)
 {
-  int read_result;
+  int read_result = -1;
   struct thread *cur_t = thread_current();
   check_address(buffer);
   if(fd<0 || fd>cur_t->fd_counter) {
     syscall_exit(-1);
   }
-  else if (fd == 0) { // 이거 맞나? 여차 하면 걍 날리자
+  else if (fd == 0) {
     lock_acquire(&filesys_lock);
     read_result = input_getc();
     lock_release(&filesys_lock);
@@ -255,8 +255,9 @@ syscall_read (int fd, void *buffer, unsigned size)
 int
 syscall_write (int fd, void *buffer, unsigned size)
 {
-  int write_result;
+  int write_result = -1;
   struct thread *cur_t = thread_current();
+  check_address(buffer);
   if(fd<1 || fd>=cur_t->fd_counter) {
     syscall_exit(-1);
   } else if (fd == 1) {
@@ -268,9 +269,11 @@ syscall_write (int fd, void *buffer, unsigned size)
     struct file* fp = cur_t->fd_table[fd];
     if(fp == NULL)
       syscall_exit(-1);
-    lock_acquire(&filesys_lock);
-    write_result = file_write(fp, buffer, size);
-    lock_release(&filesys_lock);
+    else {
+      lock_acquire(&filesys_lock);
+      write_result = file_write(fp, buffer, size);
+      lock_release(&filesys_lock);
+    }
   }
 
   return write_result;
@@ -282,7 +285,9 @@ syscall_seek(int fd, unsigned position)
 {
   struct file *fp;
   fp = thread_current()->fd_table[fd];
-  if(fp!=NULL)
+  if(fp==NULL)
+    return;
+  else
     file_seek(fp, position);
 }
 
