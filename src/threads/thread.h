@@ -116,6 +116,11 @@ struct thread
     int fd_counter;
 #endif
 
+#ifdef VM
+   struct list mmap_list;
+   int mmap_num;
+#endif
+
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };

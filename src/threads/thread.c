@@ -502,6 +502,11 @@ init_thread (struct thread *t, const char *name, int priority)
 
   #endif
 
+  #ifdef VM
+  list_init(&t->mmap_list); //thread의 mmap_list 초기화 필요
+  t->mmap_num = 0;
+  #endif
+
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

@@ -3,13 +3,19 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
-
+#include "threads/malloc.h"
+#include "userprog/pagedir.h"
 #include "filesys/filesys.h"
 #include "devices/shutdown.h"
+#include "threads/vaddr.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #include "devices/input.h"
 #include "filesys/file.h"
+#endif
+#ifdef VM
+#include "vm/page.h"
+#include "vm/swap.h"
 #endif
 
 
@@ -324,4 +330,66 @@ syscall_close(int fd)
       cur_t->fd_counter--;
     }
   }
+}
+
+int mmap(int fd, void *addr)
+{
+  struct mmap_file *mmap_file;
+  struct thread *t = thread_current();
+  struct file *f = t->fd_table[fd];
+  struct file* open_f;
+  int file_size;
+  int offset;
+  int read_byte, zero_byte;
+
+  ASSERT(f!=NULL);
+  ASSERT(fd != 0);
+  ASSERT(fd != 1);
+
+  mmap_file = (struct mmap_file*) malloc(sizeof(struct mmap_file));
+
+  file_size = file_length(f)
+  //if the file has length of zero -> mmap fail
+  if(file_size==0)
+  {
+    free(mmap_file);
+    return -1; //fail
+  }
+
+  lock_acquire(&filesys_lock); //filesys 접근, lock 필요
+
+  open_f = file_reopen(f); //close되더라도 mmap의 유효성을 유지하기 위해 복제함
+  ASSERT(open_f != NULL);
+
+  for(offset = 0 ; offset < file_size ; offset += PGSIZE) //먼저 mapping할 주소에 page가 존재하면 안된다.
+  {
+    if(page_find(addr + offset))
+    {
+      lock_release(&filesys_lock);
+      free(mmap_file);
+      return -1;
+    }
+  }
+
+  mmap_file->mapid = t->mmap_num;
+  mmap_file->file = open_f;
+
+  t->mmap_num = t->mmap_num + 1; //mmap num 개수 추가
+
+  for(offset = 0 ; offset < file_size ; offset += PGSIZE)
+  {
+    if(file_size - offset >= PGSIZE)
+      read_byte = PGSIZE;
+    else
+      read_byte = file_size - offset;
+
+    zero_byte = PGSIZE - read_byte; // pgsize만큼 읽으면 zero = 0
+
+    alloc_page_with_file (addr+offset , true , open_f, offset, read_byte, zero_byte);
+  }
+
+  list_push_back(&t->mmap_list, &mmap_file->elem);
+  lock_release(&filesys_lock);
+
+  return mmap_file->mapid;
 }

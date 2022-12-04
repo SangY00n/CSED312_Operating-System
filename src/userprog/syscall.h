@@ -3,8 +3,18 @@
 
 #include <stdbool.h>
 #include "threads/synch.h"
+#include "vm/page.h"
+#include <list.h>
 
 typedef int pid_t;
+
+struct mmap_file {
+
+    int mapid; //mmap 성공 시 리턴된 mapping id
+    struct file *file; //매핑 파일 오브젝트
+    struct list_elem elem; //thread의 mmap_list 위한 구조체
+
+};
 
 // 파일에 대한 동시 접근 방지를 위해 lock 사용
 struct lock filesys_lock; // thread *holder와 binary semaphore를 가짐
@@ -27,6 +37,8 @@ void syscall_seek(int fd, unsigned position);
 unsigned syscall_tell (int fd);
 void syscall_close(int fd);
 
+int mmap(int fd, void* addr);
+void mummap(int mapping);
 
 
 #endif /* userprog/syscall.h */

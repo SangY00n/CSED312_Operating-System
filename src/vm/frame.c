@@ -13,29 +13,29 @@ frame_init(void) {
     lock_init(&frame_lock);
 }
 
-void*
-alloc_frame(enum palloc_flags flag, void* page)
+void *
+alloc_frame(enum palloc_flags flag, struct page *page)
 {
     struct frame *new_frame = malloc(sizeof(struct frame)); //새롭게 할당할 frame
     void* kaddr;
     lock_acquire(&frame_lock);
     kaddr = palloc_get_page(PAL_USER | flag);
 
-    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~evict 알고리즘 구현할 것~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-
     if(kaddr == NULL) //frame이 가득 찬 경우, evict 필요
     {
-        return NULL;
+        evict_page();
+        kaddr = palloc_get_page(PAL_USER | flag);
+        ASSERT(kaddr != NULL);
     }
     
     new_frame->kaddr = kaddr;
     new_frame->page = page;
     new_frame->thread = thread_current();
-
+    page->frame = new_frame;
     list_push_back(&frame_table, &new_frame->elem);
 
     lock_release(&frame_lock);
-    return new_frame;
+    return kaddr;
 }
 
 //매개변수가 kaddr이면 get_frame으로 frame을 얻을 수 있다.
@@ -76,10 +76,10 @@ get_frame(void* kaddr)
     struct list_elem *e;
     struct frame *frame;
 
-    for(e = list_begin(&frame_table);e != list_end(&frame_table); e = list_next(elem))
+    for(e = list_begin(&frame_table);e != list_end(&frame_table); e = list_next(e))
     {
         frame = list_entry(e, struct frame, elem);
-        
+
         if(frame->kaddr == kaddr) return frame;
     }
     return NULL;
@@ -110,9 +110,9 @@ evict_page(void)
             clock_hand = cur_frame;
         }
 
-        if(pagedir_is_accessed(cur_frame->thread->pagedir, cur_frame->page)) //accesed bit 1
+        if(pagedir_is_accessed(cur_frame->thread->pagedir, cur_frame->page->vaddr)) //accesed bit 1
         {
-            pagedir_set_accessed(cur_frame->thread->pagedir, cur_frame->page, false);
+            pagedir_set_accessed(cur_frame->thread->pagedir, cur_frame->page->vaddr, false);
         }
         else //accessed bit 0
         {
@@ -123,7 +123,7 @@ evict_page(void)
     //victim frame finded
 
     index = swap_out(cur_frame->kaddr);
-    is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->page); //아마 오류날수도 있음. page일지 kaddr일지 생각해보자.
+    is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->page->vaddr); //아마 오류날수도 있음. page일지 kaddr일지 생각해보자.
 
     ASSERT(set_page_to_swap(cur_frame->page, index, is_dirty));
 
