@@ -116,10 +116,16 @@ struct thread
     int fd_counter;
 #endif
 
+<<<<<<< HEAD
 #ifdef VM
    struct list mmap_list;
    int mmap_num;
 #endif
+=======
+   struct hash *page_table;
+
+   struct list mmap_list;
+>>>>>>> a3f72dbf7814654587396db1dce2c226438a145d
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */

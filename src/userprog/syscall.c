@@ -385,7 +385,7 @@ int mmap(int fd, void *addr)
 
     zero_byte = PGSIZE - read_byte; // pgsize만큼 읽으면 zero = 0
 
-    alloc_page_with_file (addr+offset , true , open_f, offset, read_byte, zero_byte);
+    alloc_page_with_file (addr+offset , true , open_f, offset, read_byte, zero_byte); //upage, writable,*file,offset, read_bytes, zero_bytes)
   }
 
   list_push_back(&t->mmap_list, &mmap_file->elem);
