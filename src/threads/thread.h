@@ -116,6 +116,10 @@ struct thread
     int fd_counter;
 #endif
 
+   struct hash *page_table;
+
+   struct list mmap_list;
+
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };

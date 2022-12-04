@@ -19,6 +19,8 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+#include "vm/page.h"
+
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -174,6 +176,8 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+
+  free_page_table();
   
   file_close(cur->file_exec); // 위에서 file_exec을 file로 지정해주는 순간 여기서 Kernel Panic.. 그리고 나도 Panic ㅜㅜ -> load()에 있던 file_close 지워서 해결 완료
   fd_walker = cur->fd_counter-1;
@@ -284,7 +288,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
   bool success = false;
   int i;
 
-  
+  /* initialize (supplemental) page table */
+  init_page_table();
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
@@ -475,25 +480,11 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-      /* Get a page of memory. */
-      uint8_t *kpage = palloc_get_page (PAL_USER);
-      if (kpage == NULL)
+      // 기존의 물리 페이지 할당 파트 삭제
+      if(!alloc_page_with_file(upage, writable, file, ofs, page_read_bytes, page_zero_bytes)) {
         return false;
-
-      /* Load this page. */
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-        {
-          palloc_free_page (kpage);
-          return false; 
-        }
-      memset (kpage + page_read_bytes, 0, page_zero_bytes);
-
-      /* Add the page to the process's address space. */
-      if (!install_page (upage, kpage, writable)) 
-        {
-          palloc_free_page (kpage);
-          return false; 
-        }
+      }
+      ofs += page_read_bytes;
 
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -509,17 +500,33 @@ static bool
 setup_stack (void **esp) 
 {
   uint8_t *kpage;
+  uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
   bool success = false;
 
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  if (!alloc_page_with_zero(upage)) {
+    return false;
+  }
+  struct page *stack_page = page_find(upage);
+  // kpage = alloc_frame(PAL_USER | PAL_ZERO, stack_page); // 찬호가 구현할 예정
   if (kpage != NULL) 
+  {
+    memset(stack_page->frame->kaddr, 0, PGSIZE); // 0으로 초기화
+    success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+    if (success)
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE;
-      else
-        palloc_free_page (kpage);
+      *esp = PHYS_BASE;
     }
+    else
+    {
+      // free_frame(stack_page->frame); // 찬호가 구현할 예정
+      free_page(stack_page); 
+    }
+  }
+  else
+  {
+    free_page(stack_page);
+  }
+
   return success;
 }
 
