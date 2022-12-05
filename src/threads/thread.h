@@ -122,6 +122,8 @@ struct thread
 
    struct list mmap_list;
    int mmap_num;
+
+   void *esp;
 #endif
 
     /* Owned by thread.c. */

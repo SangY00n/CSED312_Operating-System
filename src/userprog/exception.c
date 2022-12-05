@@ -165,6 +165,15 @@ page_fault (struct intr_frame *f)
    {
       void *page_addr = (void*)pg_round_down(fault_addr);
       ASSERT(page_addr < PHYS_BASE);
+      void *esp = user ? f->esp : thread_current()->esp;
+      if(fault_addr >= esp-32 && fault_addr >= PHYS_BASE - MAX_STACK_SIZE) // stack 영역이 맞는지 확인
+      {
+         if(!expand_stack(f, esp, fault_addr, page_addr))
+         {
+            syscall_exit(-1); // stack growth 를 위한 page 생성 실패
+         }
+      }   
+
       struct page *cur_page = page_find(page_addr);
       if(cur_page != NULL)
       {
@@ -242,4 +251,15 @@ bool load_page(struct page *cur_page)
    }
 
    return success;
+}
+
+bool expand_stack(struct intr_frame *f, void *esp, void *fault_addr, void *page_addr)
+{
+   struct thread *cur_t = thread_current();
+   ASSERT(fault_addr >= esp-32 && fault_addr >= PHYS_BASE - MAX_STACK_SIZE);
+   if(page_find(page_addr)==NULL) // stack을 위한 page가 필요한 경우
+   {
+      return alloc_page_with_zero(page_addr); // stack을 위한 page 생성
+   }
+   return true;
 }

@@ -14,7 +14,7 @@ swap_init()
 }
 
 
-//swap partition -> main memory
+// swap partition -> main memory
 void
 swap_in(struct page *page, int index, void*kaddr)
 {
@@ -34,7 +34,7 @@ swap_in(struct page *page, int index, void*kaddr)
     lock_release(&swap_lock);
 }
 
-//main memory -> swap partiotion
+// main memory -> swap partition
 int
 swap_out(void* kaddr)
 {
