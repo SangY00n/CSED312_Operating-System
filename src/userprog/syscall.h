@@ -13,6 +13,7 @@ struct mmap_file {
     int mapid; //mmap 성공 시 리턴된 mapping id
     struct file *file; //매핑 파일 오브젝트
     struct list_elem elem; //thread의 mmap_list 위한 구조체
+    void* addr; //시작 주소 저장(munmap에서 사용)
 
 };
 

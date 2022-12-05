@@ -94,7 +94,7 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-#ifdef USERPROG
+//#ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 
@@ -114,18 +114,11 @@ struct thread
     struct file **fd_table;
     struct file *file_exec;
     int fd_counter;
-#endif
+//#endif
 
-<<<<<<< HEAD
-#ifdef VM
    struct list mmap_list;
    int mmap_num;
-#endif
-=======
    struct hash *page_table;
-
-   struct list mmap_list;
->>>>>>> a3f72dbf7814654587396db1dce2c226438a145d
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */

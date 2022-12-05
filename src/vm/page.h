@@ -31,7 +31,7 @@ void init_page_table(void);
 void hash_elem_destructor (struct hash_elem *e, void *aux);
 void free_page_table(void);
 void free_page(struct page *page);
-bool alloc_page_with_file (uint8_t *upage, bool writable, struct file *file, off_t offset, size_t read_bytes, size_t zero_bytes);
+bool alloc_page_with_file(uint8_t *upage, bool writable, struct file *file, off_t offset, size_t read_bytes, size_t zero_bytes);
 bool alloc_page_with_zero(uint8_t upage);
 
 // bool set_page_to_swap (struct page *page, int asdfasdf, bool is_dirty);
