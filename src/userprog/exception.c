@@ -6,7 +6,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
-#include "vm/page.h"
+
 #include "vm/frame.h"
 #include "vm/swap.h"
 
@@ -168,7 +168,7 @@ page_fault (struct intr_frame *f)
       void *esp = user ? f->esp : thread_current()->esp;
       if(fault_addr >= esp-32 && fault_addr >= PHYS_BASE - MAX_STACK_SIZE) // stack 영역이 맞는지 확인
       {
-         if(!expand_stack(f, esp, fault_addr, page_addr))
+         if(!expand_stack(esp, fault_addr, page_addr))
          {
             syscall_exit(-1); // stack growth 를 위한 page 생성 실패
          }
@@ -233,6 +233,8 @@ bool load_page(struct page *cur_page)
       case SWAP:
          swap_in(cur_page, cur_page->swap_index, cur_frame->kaddr);
          break;
+      default:
+         break;
    }
 
    if(!pagedir_set_page(cur_t->pagedir, cur_page->vaddr, cur_frame->kaddr, cur_page->writable))
@@ -253,9 +255,8 @@ bool load_page(struct page *cur_page)
    return success;
 }
 
-bool expand_stack(struct intr_frame *f, void *esp, void *fault_addr, void *page_addr)
+bool expand_stack(void *esp, void *fault_addr, void *page_addr)
 {
-   struct thread *cur_t = thread_current();
    ASSERT(fault_addr >= esp-32 && fault_addr >= PHYS_BASE - MAX_STACK_SIZE);
    if(page_find(page_addr)==NULL) // stack을 위한 page가 필요한 경우
    {

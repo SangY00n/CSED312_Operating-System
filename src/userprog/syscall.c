@@ -14,7 +14,6 @@
 #include "filesys/file.h"
 #endif
 #ifdef VM
-#include "vm/page.h"
 #include "vm/swap.h"
 #endif
 
@@ -403,7 +402,7 @@ int mmap(int fd, void *addr)
   return mmap_file->mapid;
 }
 
-void mummap(int mapping) //parameter mapid
+void munmap(int mapping) //parameter mapid
 {
   struct thread *t = thread_current();
   struct list_elem *e;

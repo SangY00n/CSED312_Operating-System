@@ -4,7 +4,7 @@
 void
 swap_init()
 {   
-    int sector_num = PGSIZE / BLOCK_SECTOR_SIZE; //값 : 8 (page당 sector 개수)
+    int sector_num = PGSIZE / BLOCK_SECTOR_SIZE; //값 : 8 (한 page당 sector 개수)
     swap_block = block_get_role(BLOCK_SWAP); //swap을 위한 block을 swap_block에 저장
     swap_table = bitmap_create(block_size(swap_block)/ sector_num); //사이즈만큼 bitmap 생성
 
