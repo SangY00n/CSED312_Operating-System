@@ -115,6 +115,14 @@ syscall_handler (struct intr_frame *f)
       get_argument(f -> esp, argv, 1);
       syscall_close(argv[0]);
       break;
+    case SYS_MMAP:
+      get_argument(f -> esp, argv, 2);
+      f->eax = mmap(argv[0], argv[1]);
+      break;
+    case SYS_MUNMAP:
+      get_argument(f->esp, argv, 1);
+      munmap(argv[0]);
+      break;
   }
 
 }
@@ -348,7 +356,7 @@ int mmap(int fd, void *addr)
 
   mmap_file = (struct mmap_file*) malloc(sizeof(struct mmap_file));
 
-  file_size = file_length(f)
+  file_size = file_length(f);
   //if the file has length of zero -> mmap fail
   if(file_size==0)
   {
@@ -373,6 +381,7 @@ int mmap(int fd, void *addr)
 
   mmap_file->mapid = t->mmap_num;
   mmap_file->file = open_f;
+  mmap_file->addr = addr;
 
   t->mmap_num = t->mmap_num + 1; //mmap num 개수 추가
 
@@ -392,4 +401,49 @@ int mmap(int fd, void *addr)
   lock_release(&filesys_lock);
 
   return mmap_file->mapid;
+}
+
+void mummap(int mapping) //parameter mapid
+{
+  struct thread *t = thread_current();
+  struct list_elem *e;
+  struct mmap_file *mmap_file;
+  struct page *page;
+  int offset;
+
+  lock_acquire(&filesys_lock);
+  //find mmapping by mapping id
+
+  for(e = list_begin(&t->mmap_list); e != list_end(&t->mmap_list) ; e = list_next(e))
+  {
+    mmap_file = list_entry(e, struct mmap_file, elem);
+    if(mmap_file->mapid == mapping)
+    {
+      break;
+    }
+  }
+  if(mmap_file->mapid != mapping)  //fail to find mapping
+    return;
+  
+  for(offset = 0; offset < file_length(mmap_file->file) ; offset += PGSIZE)
+  {
+    page = page_find(mmap_file->addr + offset);
+    if(page == NULL || page->frame ==NULL )
+      continue;
+
+    if(pagedir_is_dirty(t->pagedir, page->vaddr)) //dirty라면 disk에 적어야 한다.
+    {
+      void * kpage = pagedir_get_page(t->pagedir, page->vaddr); //physical page찾기
+      //file_write_at (struct file *file, const void *buffer, off_t size, off_t file_ofs) 
+      file_write_at(page->file, kpage, page->read_bytes, page->offset); //buffer로부터 file에 적어주기
+    }
+    free_page(page);
+  }
+  file_close(mmap_file->file);
+  list_remove(e);
+  free(mmap_file);
+  
+  lock_release(&filesys_lock);
+   
+  return;
 }

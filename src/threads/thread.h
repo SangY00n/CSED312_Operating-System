@@ -95,7 +95,7 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-#ifdef USERPROG
+//#ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 
@@ -115,7 +115,7 @@ struct thread
     struct file **fd_table;
     struct file *file_exec;
     int fd_counter;
-#endif
+//#endif
 
 #ifdef VM
    struct hash *page_table;
