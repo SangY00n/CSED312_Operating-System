@@ -1,4 +1,4 @@
-// #include "vm/frame.h"
+#include "vm/frame.h"
 #include <hash.h>
 #include "filesys/off_t.h"
 

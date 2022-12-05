@@ -177,7 +177,7 @@ process_exit (void)
       pagedir_destroy (pd);
     }
 
-  free_page_table();
+  free_page_table(); // supplemental page table
   
   file_close(cur->file_exec); // 위에서 file_exec을 file로 지정해주는 순간 여기서 Kernel Panic.. 그리고 나도 Panic ㅜㅜ -> load()에 있던 file_close 지워서 해결 완료
   fd_walker = cur->fd_counter-1;
@@ -518,7 +518,7 @@ setup_stack (void **esp)
     }
     else
     {
-      // free_frame(stack_page->frame); // 찬호가 구현할 예정
+      free_frame(stack_page->frame); // 찬호가 구현할 예정
       free_page(stack_page); 
     }
   }

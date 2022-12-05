@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/synch.h"
+#include <hash.h>
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -116,9 +117,12 @@ struct thread
     int fd_counter;
 //#endif
 
+#ifdef VM
+   struct hash *page_table;
+
    struct list mmap_list;
    int mmap_num;
-   struct hash *page_table;
+#endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
