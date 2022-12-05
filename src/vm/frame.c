@@ -14,10 +14,12 @@ frame_init(void) {
 }
 
 void *
-alloc_frame(enum palloc_flags flag, struct page *page)
+alloc_frame(struct page *page)
 {
     struct frame *new_frame = malloc(sizeof(struct frame)); //새롭게 할당할 frame
     void* kaddr;
+    enum palloc_flags flag = page->page_type == ZERO ? PAL_ZERO : PAL_USER;
+    if(new_frame==NULL) return NULL;
     lock_acquire(&frame_lock);
     kaddr = palloc_get_page(PAL_USER | flag);
 

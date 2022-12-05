@@ -15,9 +15,11 @@ struct page
     struct hash_elem hash_elem;
 
     struct file *file;
-    off_t offset;      /*  */
+    off_t offset;      /* offset for starting to read file */
     size_t read_bytes;  /* writen data size */
     size_t zero_bytes;  /* remaining data size to be filled with 0 */
+
+    int swap_index; /* swap table index */
 
     bool is_dirty;      /* dirty bit */    
 };
