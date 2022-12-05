@@ -223,7 +223,7 @@ bool load_page(struct page *cur_page)
          memset(cur_frame->kaddr, 0, PGSIZE);
          break;
       case FILE:
-         if(file_read_at(cur_page->file, cur_frame->kaddr, page_read_bytes, cur_page->offset))
+         if(file_read_at(cur_page->file, cur_frame->kaddr, page_read_bytes, cur_page->offset) != (int) page_read_bytes)
          {
             success = false;
             break;

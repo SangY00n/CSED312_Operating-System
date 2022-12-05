@@ -119,9 +119,8 @@ main (void)
   syscall_init ();
 #endif
 
-#ifdef VM //frame table init 추가
+#ifdef VM
   frame_init();
-  swap_init();
 #endif
 
   /* Start thread scheduler and enable interrupts. */
@@ -134,6 +133,10 @@ main (void)
   ide_init ();
   locate_block_devices ();
   filesys_init (format_filesys);
+#endif
+
+#ifdef VM
+  swap_init();
 #endif
 
   printf ("Boot complete.\n");
