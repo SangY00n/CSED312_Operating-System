@@ -507,7 +507,7 @@ setup_stack (void **esp)
     return false;
   }
   struct page *stack_page = page_find(upage);
-  // kpage = alloc_frame(PAL_USER | PAL_ZERO, stack_page); // 찬호가 구현할 예정
+  kpage = alloc_frame(stack_page); // 찬호가 구현할 예정
   if (kpage != NULL) 
   {
     memset(stack_page->frame->kaddr, 0, PGSIZE); // 0으로 초기화

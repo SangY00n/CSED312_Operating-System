@@ -1,9 +1,9 @@
 #ifndef VM_PAGE_H
 #define VM_PAGE_H
-
 #include "vm/frame.h"
 #include <hash.h>
 #include "filesys/off_t.h"
+#include <stdbool.h>
 
 enum page_type { ZERO, SWAP, FILE, CLEAR };
 
@@ -18,9 +18,11 @@ struct page
     struct hash_elem hash_elem;
 
     struct file *file;
-    off_t offset;      /*  */
+    off_t offset;      /* offset for starting to read file */
     size_t read_bytes;  /* writen data size */
     size_t zero_bytes;  /* remaining data size to be filled with 0 */
+
+    int swap_index; /* swap table index */
 
     bool is_dirty;      /* dirty bit */    
 };
@@ -37,6 +39,6 @@ void free_page(struct page *page);
 bool alloc_page_with_file(uint8_t *upage, bool writable, struct file *file, off_t offset, size_t read_bytes, size_t zero_bytes);
 bool alloc_page_with_zero(uint8_t *upage);
 
-// bool set_page_to_swap (struct page *page, int asdfasdf, bool is_dirty);
+void set_page_to_swap (struct page *page, int swap_index, bool is_dirty);
 
 #endif

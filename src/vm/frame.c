@@ -14,10 +14,12 @@ frame_init(void) {
 }
 
 void *
-alloc_frame(enum palloc_flags flag, struct page *page)
+alloc_frame(struct page *page)
 {
     struct frame *new_frame = malloc(sizeof(struct frame)); //새롭게 할당할 frame
     void* kaddr;
+    enum palloc_flags flag = page->page_type == ZERO ? PAL_ZERO : PAL_USER;
+    if(new_frame==NULL) return NULL;
     lock_acquire(&frame_lock);
     kaddr = palloc_get_page(PAL_USER | flag);
 
@@ -125,7 +127,7 @@ evict_page(void)
     index = swap_out(cur_frame->kaddr);
     is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->page->vaddr); //아마 오류날수도 있음. page일지 kaddr일지 생각해보자.
 
-    ASSERT(set_page_to_swap(cur_frame->page, index, is_dirty));
+    set_page_to_swap(cur_frame->page, index, is_dirty);
 
     free_frame(cur_frame); //free_frame으로 frame table 비워줌
 }

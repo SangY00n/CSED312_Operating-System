@@ -142,8 +142,10 @@ bool alloc_page_with_zero(uint8_t *upage)
     }
 }
 
-// bool set_page_to_swap (struct page *page, int asdfasdf, bool is_dirty)
-// {
-//     /* not implemented */
-// }
+void set_page_to_swap (struct page *page, int swap_index, bool is_dirty)
+{
+    page->swap_index = swap_index;
+    page->is_dirty = is_dirty;
+    page->page_type = SWAP;
+}
 

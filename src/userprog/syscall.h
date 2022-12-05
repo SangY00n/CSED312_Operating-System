@@ -39,7 +39,7 @@ unsigned syscall_tell (int fd);
 void syscall_close(int fd);
 
 int mmap(int fd, void* addr);
-void mummap(int mapping);
+void munmap(int mapping);
 
 
 #endif /* userprog/syscall.h */

@@ -6,6 +6,13 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+
+#include "vm/frame.h"
+#include "vm/swap.h"
+
+#include "filesys/file.h"
+#include "userprog/pagedir.h"
+
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
@@ -156,8 +163,25 @@ page_fault (struct intr_frame *f)
 
    if(not_present)
    {
-      void* page_addr = (void*)pg_round_down(fault_addr);
-      // page load 필요
+      void *page_addr = (void*)pg_round_down(fault_addr);
+      ASSERT(page_addr < PHYS_BASE);
+      void *esp = user ? f->esp : thread_current()->esp;
+      if(fault_addr >= esp-32 && fault_addr >= PHYS_BASE - MAX_STACK_SIZE) // stack 영역이 맞는지 확인
+      {
+         if(!expand_stack(esp, fault_addr, page_addr))
+         {
+            syscall_exit(-1); // stack growth 를 위한 page 생성 실패
+         }
+      }   
+
+      struct page *cur_page = page_find(page_addr);
+      if(cur_page != NULL)
+      {
+         if(load_page(cur_page))
+         {
+            return;
+         }
+      }
    }
 
   // Page fault 에러 메시지 출력 방지를 위한 syscall_exit(-1) 호출
@@ -174,3 +198,69 @@ page_fault (struct intr_frame *f)
   kill (f);
 }
 
+bool load_page(struct page *cur_page)
+{
+   ASSERT(cur_page!=NULL)
+   struct thread *cur_t = thread_current();
+   struct frame *cur_frame;
+   enum page_type page_type = cur_page->page_type;
+
+   size_t page_read_bytes = cur_page->read_bytes < PGSIZE ? cur_page->read_bytes : PGSIZE; // 이번에 읽어올 page bytes
+   size_t page_zero_bytes = PGSIZE - page_read_bytes; // 이번에 읽어온 뒤 0으로 채울 bytes
+
+   if (page_type == CLEAR) return true;
+
+   if(alloc_frame(cur_page)==NULL) return false;
+   else {
+      cur_frame = cur_page->frame;
+   }
+
+   bool success = true;
+   
+   switch(page_type)
+   {
+      case ZERO:
+         memset(cur_frame->kaddr, 0, PGSIZE);
+         break;
+      case FILE:
+         if(file_read_at(cur_page->file, cur_frame->kaddr, page_read_bytes, cur_page->offset))
+         {
+            success = false;
+            break;
+         }
+         memset(cur_frame->kaddr + page_read_bytes, 0, page_zero_bytes);
+         break;
+      case SWAP:
+         swap_in(cur_page, cur_page->swap_index, cur_frame->kaddr);
+         break;
+      default:
+         break;
+   }
+
+   if(!pagedir_set_page(cur_t->pagedir, cur_page->vaddr, cur_frame->kaddr, cur_page->writable))
+   {
+      success = false;
+   }
+
+   if(success)
+   {
+      pagedir_set_dirty(cur_t->pagedir, cur_frame->kaddr, cur_page->is_dirty);
+      cur_page->page_type = CLEAR;
+   }
+   else
+   {
+      free_frame(cur_frame);
+   }
+
+   return success;
+}
+
+bool expand_stack(void *esp, void *fault_addr, void *page_addr)
+{
+   ASSERT(fault_addr >= esp-32 && fault_addr >= PHYS_BASE - MAX_STACK_SIZE);
+   if(page_find(page_addr)==NULL) // stack을 위한 page가 필요한 경우
+   {
+      return alloc_page_with_zero(page_addr); // stack을 위한 page 생성
+   }
+   return true;
+}
