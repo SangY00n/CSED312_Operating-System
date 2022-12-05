@@ -48,7 +48,7 @@ void hash_elem_destructor (struct hash_elem *e, void *aux)
     struct page *page = hash_entry(e, struct page, hash_elem);
     if (page->page_type == CLEAR)
     {
-        // free_frame(page->frame) 호출
+        free_frame(page->frame);
     }
     else if (page->page_type == SWAP)
     {
@@ -86,7 +86,7 @@ bool alloc_page_with_file (uint8_t *upage, bool writable, struct file *file, off
         alloc_page->vaddr = upage;
         alloc_page->writable = writable;
 
-        // alloc_page->frame = NULL;
+        alloc_page->frame = NULL;
 
         alloc_page->file = file;
         alloc_page->offset = offset;
@@ -107,7 +107,7 @@ bool alloc_page_with_file (uint8_t *upage, bool writable, struct file *file, off
     }
 }
 
-bool alloc_page_with_zero(uint8_t upage)
+bool alloc_page_with_zero(uint8_t *upage)
 {
     struct thread *cur_t = thread_current();
     struct page *alloc_page = (struct page *)malloc(sizeof(struct page));
@@ -121,7 +121,7 @@ bool alloc_page_with_zero(uint8_t upage)
         alloc_page->vaddr = upage;
         alloc_page->writable = true;
 
-        // alloc_page->frame = NULL;
+        alloc_page->frame = NULL;
 
         alloc_page->file = NULL;
         alloc_page->offset = -1;
