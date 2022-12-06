@@ -349,10 +349,8 @@ int mmap(int fd, void *addr)
   int offset;
   int read_byte, zero_byte;
 
-  ASSERT(f!=NULL);
-  ASSERT(fd != 0);
-  ASSERT(fd != 1);
-
+  if(f == NULL || fd == 1 || fd == 0) return -1;
+  if(addr == NULL) return -1;
   mmap_file = (struct mmap_file*) malloc(sizeof(struct mmap_file));
 
   file_size = file_length(f);
@@ -414,6 +412,9 @@ void munmap(int mapping) //parameter mapid
   struct mmap_file *mmap_file;
   struct page *page;
   int offset;
+
+  //mapping 존재 안하는 경우
+  if (mapping >= t->mmap_num) return;
 
   lock_acquire(&filesys_lock);
   //find mmapping by mapping id

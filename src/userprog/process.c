@@ -177,10 +177,10 @@ process_exit (void)
       pagedir_destroy (pd);
 
       //현재 프로세스가 mapping한 mmap file들을 모두 닫아줘야 한다.
-      // for(i = 0 ; i< cur->mmap_num ; i++)
-      // {
-      //   munmap(i);
-      // }
+      for(i = 0 ; i < cur -> mmap_num ; i++)
+      {
+        munmap(i);
+      }
     }
 
   free_page_table(); // supplemental page table
