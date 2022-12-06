@@ -6,6 +6,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+#include "userprog/syscall.h"
 
 #include "vm/frame.h"
 #include "vm/swap.h"
