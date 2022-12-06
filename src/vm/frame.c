@@ -97,6 +97,11 @@ evict_page(void)
     int index;
     bool is_dirty;
 
+    // if(cur_frame!=NULL)
+    // {
+    //     pagedir_set_accessed(cur_frame->thread->pagedir, cur_frame->page->vaddr, false);
+    // }
+
     while(1)
     {
         if(cur_frame == NULL || list_next(&cur_frame->elem) == list_end(&frame_table)) //처음 evict할 경우 or 한바퀴 다 돌았을 경우->frame의 처음으로
@@ -122,6 +127,7 @@ evict_page(void)
             //cur_frame을 victim frame으로 설정
         } 
     }
+
     //victim frame finded
 
     index = swap_out(cur_frame->kaddr);
@@ -129,5 +135,8 @@ evict_page(void)
 
     set_page_to_swap(cur_frame->page, index, is_dirty);
 
+    bool is_frame_lock = lock_held_by_current_thread(&frame_lock);
+    if (is_frame_lock) lock_release(&frame_lock);
     frame_free(cur_frame); //free_frame으로 frame table 비워줌
+    if (is_frame_lock) lock_acquire(&frame_lock);
 }
