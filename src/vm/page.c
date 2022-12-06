@@ -1,11 +1,12 @@
 #include "vm/page.h"
 #include "threads/thread.h"
 #include "threads/malloc.h"
+#include "vm/swap.h"
 
 unsigned page_hash_hash (const struct hash_elem *e, void *aux)
 {
     const struct page *p = hash_entry(e, struct page, hash_elem);
-    return hash_bytes(p->vaddr, sizeof(p->vaddr));
+    return hash_bytes(&p->vaddr, sizeof(p->vaddr));
 }
 
 bool page_hash_less (const struct hash_elem *a,
@@ -52,8 +53,7 @@ void hash_elem_destructor (struct hash_elem *e, void *aux)
     }
     else if (page->page_type == SWAP)
     {
-        // SWAP 파트에서 다룰 예정
-        // swap 관련 destory 처리
+        swap_destroy(page->swap_index);
     }
     free_page(page);
 }

@@ -13,5 +13,6 @@ struct lock swap_lock;
 void swap_init(void);
 void swap_in(struct page *page, int index, void*kaddr);
 int swap_out(void* kaddr);
+void swap_destroy(uint32_t index);
 
 #endif

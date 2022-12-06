@@ -55,3 +55,9 @@ swap_out(void* kaddr)
 
     return index;
 }
+
+void
+swap_destroy(uint32_t index)
+{
+    bitmap_set(swap_table, index, false);
+}
