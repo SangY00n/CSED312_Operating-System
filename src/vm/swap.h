@@ -7,7 +7,7 @@
 
 struct bitmap *swap_table;
 struct block *swap_block;
-struct lock *swap_lock;
+struct lock swap_lock;
 
 //매개변수 추가할 것
 void swap_init(void);
