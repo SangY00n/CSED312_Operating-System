@@ -210,7 +210,7 @@ bool load_page(struct page *cur_page)
 
    if (page_type == CLEAR) return true;
 
-   if(alloc_frame(cur_page)==NULL) return false;
+   if(frame_alloc(cur_page)==NULL) return false;
    else {
       cur_frame = cur_page->frame;
    }
@@ -249,7 +249,7 @@ bool load_page(struct page *cur_page)
    }
    else
    {
-      free_frame(cur_frame);
+      frame_free(cur_frame);
    }
 
    return success;

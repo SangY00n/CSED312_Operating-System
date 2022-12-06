@@ -21,8 +21,8 @@ struct frame{
 struct list frame_table; //frame table을 이루는 list
 struct lock frame_lock; //frame table 관리를 위한 lock
 
-void* alloc_frame(struct page *page);
-void free_frame(struct frame *frame);
+void* frame_alloc(struct page *page);
+void frame_free(struct frame *frame);
 struct frame* get_frame(void* kaddr);
 void evict_page(void);
 
