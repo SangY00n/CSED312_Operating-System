@@ -48,7 +48,7 @@ void hash_elem_destructor (struct hash_elem *e, void *aux)
     struct page *page = hash_entry(e, struct page, hash_elem);
     if (page->page_type == CLEAR)
     {
-        free_frame(page->frame);
+        frame_free(page->frame);
     }
     else if (page->page_type == SWAP)
     {

@@ -14,7 +14,7 @@ frame_init(void) {
 }
 
 void *
-alloc_frame(struct page *page)
+frame_alloc(struct page *page)
 {
     struct frame *new_frame = malloc(sizeof(struct frame)); //새롭게 할당할 frame
     void* kaddr;
@@ -43,7 +43,7 @@ alloc_frame(struct page *page)
 //매개변수가 kaddr이면 get_frame으로 frame을 얻을 수 있다.
 //일단은 frame받아서 free하는 것으로 구현
 void
-free_frame(struct frame *frame)
+frame_free(struct frame *frame)
 {
     struct list_elem *e;
     struct frame *list_frame;
@@ -129,5 +129,5 @@ evict_page(void)
 
     set_page_to_swap(cur_frame->page, index, is_dirty);
 
-    free_frame(cur_frame); //free_frame으로 frame table 비워줌
+    frame_free(cur_frame); //free_frame으로 frame table 비워줌
 }
