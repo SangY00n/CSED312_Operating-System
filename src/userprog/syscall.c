@@ -56,7 +56,7 @@ syscall_handler (struct intr_frame *f)
   //스택 포인터 valid check
   check_address(sp);
 
-  // thread_current()->esp = sp; //stack pointer 저장
+  thread_current()->esp = sp; //stack pointer 저장
   //syscall number를 사용하여 syacall 호출
   int syscall_num = *((int*)sp);
   int argv[3];

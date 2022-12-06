@@ -159,7 +159,7 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
   int fd_walker;
-
+  int i; //for munmap
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -175,6 +175,12 @@ process_exit (void)
       cur->pagedir = NULL;
       pagedir_activate (NULL);
       pagedir_destroy (pd);
+
+      //현재 프로세스가 mapping한 mmap file들을 모두 닫아줘야 한다.
+      // for(i = 0 ; i< cur->mmap_num ; i++)
+      // {
+      //   munmap(i);
+      // }
     }
 
   free_page_table(); // supplemental page table
