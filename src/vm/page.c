@@ -47,14 +47,14 @@ void init_page_table(void)
 void hash_elem_destructor (struct hash_elem *e, void *aux)
 {
     struct page *page = hash_entry(e, struct page, hash_elem);
-    if (page->page_type == CLEAR)
-    {
-        frame_free(page->frame);
-    }
-    else if (page->page_type == SWAP)
-    {
-        swap_destroy(page->swap_index);
-    }
+    // if (page->page_type == CLEAR)
+    // {
+    //     frame_free(page->frame);
+    // }
+    // else if (page->page_type == SWAP)
+    // {
+    //     swap_destroy(page->swap_index);
+    // }
     free_page(page);
 }
 
