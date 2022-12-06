@@ -303,15 +303,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
   file = filesys_open (file_name);
   if (file == NULL) 
     {
-      lock_release(&filesys_lock); // 실패해도 lock 해제
+      // lock_release(&filesys_lock); // 실패해도 lock 해제
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
   
-  t->file_exec = file; // 이걸 하면 갑자기 다 FAIL 뜸.. 이유는 모르겠다. 해야할 것 같은디
-  // -> load()와 proces_exit()에서 각각 file_close()를 호출해서 문제였음. load()에 있던 걸 지워줌 -> 해결 완료
-  file_deny_write(file); // for denying writes to executables
-  lock_release(&filesys_lock); // 파일 열고 lock 해제
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -393,10 +389,15 @@ load (const char *file_name, void (**eip) (void), void **esp)
   *eip = (void (*) (void)) ehdr.e_entry;
 
   success = true;
+  t->file_exec = file; // 이걸 하면 갑자기 다 FAIL 뜸.. 이유는 모르겠다. 해야할 것 같은디
+  // -> load()와 proces_exit()에서 각각 file_close()를 호출해서 문제였음. load()에 있던 걸 지워줌 -> 해결 완료
+  file_deny_write(file); // for denying writes to executables
+  
 
  done:
   /* We arrive here whether the load is successful or not. */
   // file_close (file);
+  lock_release(&filesys_lock); // 파일 열고 lock 해제
   return success;
 }
 

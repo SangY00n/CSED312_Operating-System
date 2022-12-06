@@ -366,7 +366,12 @@ int mmap(int fd, void *addr)
   lock_acquire(&filesys_lock); //filesys 접근, lock 필요
 
   open_f = file_reopen(f); //close되더라도 mmap의 유효성을 유지하기 위해 복제함
-  ASSERT(open_f != NULL);
+  if(open_f == NULL)
+  {
+    lock_release(&filesys_lock);
+    free(mmap_file);
+    return -1;
+  }
 
   for(offset = 0 ; offset < file_size ; offset += PGSIZE) //먼저 mapping할 주소에 page가 존재하면 안된다.
   {
@@ -422,7 +427,10 @@ void munmap(int mapping) //parameter mapid
     }
   }
   if(mmap_file->mapid != mapping)  //fail to find mapping
+  {
+    lock_release(&filesys_lock);
     return;
+  }
   
   for(offset = 0; offset < file_length(mmap_file->file) ; offset += PGSIZE)
   {
