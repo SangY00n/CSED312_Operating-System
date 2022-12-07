@@ -351,6 +351,8 @@ int mmap(int fd, void *addr)
 
   if(f == NULL || fd == 1 || fd == 0) return -1;
   if(addr == NULL) return -1;
+  if((int)addr % PGSIZE != 0) return -1; //page not aligned return -1
+
   mmap_file = (struct mmap_file*) malloc(sizeof(struct mmap_file));
 
   file_size = file_length(f);
