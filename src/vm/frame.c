@@ -130,13 +130,21 @@ evict_page(void)
 
     //victim frame finded
 
-    index = swap_out(cur_frame->kaddr);
-    is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->page->vaddr); //아마 오류날수도 있음. page일지 kaddr일지 생각해보자.
+    pagedir_clear_page(cur_frame->thread->pagedir, cur_frame->page->vaddr);
 
+    index = swap_out(cur_frame->kaddr);
+    // is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->page->vaddr); //아마 오류날수도 있음. page일지 kaddr일지 생각해보자.
+    is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->kaddr); // 이렇게 바꿔도 결과 똑같음..
     set_page_to_swap(cur_frame->page, index, is_dirty);
 
+
+
     bool is_frame_lock = lock_held_by_current_thread(&frame_lock);
-    if (is_frame_lock) lock_release(&frame_lock);
-    frame_free(cur_frame); //free_frame으로 frame table 비워줌
-    if (is_frame_lock) lock_acquire(&frame_lock);
+    // if (is_frame_lock) lock_release(&frame_lock);
+    // frame_free(cur_frame); //free_frame으로 frame table 비워줌 // frame_free하면 안됨. frame이 free되어서 그 frame을 못쓰게 되어버림.
+    // if (is_frame_lock) lock_acquire(&frame_lock);
+
+    // 위에꺼 대신 아래와 같이 해줘야 할 듯!!
+    palloc_free_page(cur_frame->kaddr);
+    list_remove(&cur_frame->elem);
 }
