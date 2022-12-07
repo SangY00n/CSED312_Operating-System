@@ -159,7 +159,9 @@ page_fault (struct intr_frame *f)
 
   if(!is_user_vaddr(fault_addr))
   {
-   syscall_exit(-1);
+      // f->eip = (void *) f->eax; // 필요한가?
+      // f->eax = 0xffffffff; // 필요한가?
+      syscall_exit(-1);
   }
 
    if(not_present)
@@ -201,7 +203,7 @@ page_fault (struct intr_frame *f)
 
 bool load_page(struct page *cur_page)
 {
-   ASSERT(cur_page!=NULL)
+   ASSERT(cur_page!=NULL);
    struct thread *cur_t = thread_current();
    struct frame *cur_frame;
    enum page_type page_type = cur_page->page_type;
@@ -237,12 +239,13 @@ bool load_page(struct page *cur_page)
       default:
          break;
    }
-
-   if(!pagedir_set_page(cur_t->pagedir, cur_page->vaddr, cur_frame->kaddr, cur_page->writable))
+   if(success)
    {
-      success = false;
+      if(!pagedir_set_page(cur_t->pagedir, cur_page->vaddr, cur_frame->kaddr, cur_page->writable))
+      {
+         success = false;
+      }
    }
-
    if(success)
    {
       pagedir_set_dirty(cur_t->pagedir, cur_frame->kaddr, cur_page->is_dirty);
