@@ -159,8 +159,8 @@ page_fault (struct intr_frame *f)
 
   if(!is_user_vaddr(fault_addr))
   {
-      // f->eip = (void *) f->eax; // 필요한가?
-      // f->eax = 0xffffffff; // 필요한가?
+      f->eip = (void *) f->eax; // 필요한가?
+      f->eax = 0xffffffff; // 필요한가?
       syscall_exit(-1);
   }
 
@@ -169,7 +169,7 @@ page_fault (struct intr_frame *f)
       void *page_addr = (void*)pg_round_down(fault_addr);
       ASSERT(page_addr < PHYS_BASE);
       void *esp = user ? f->esp : thread_current()->esp;
-      if(fault_addr >= esp-32 && fault_addr >= PHYS_BASE - MAX_STACK_SIZE) // stack 영역이 맞는지 확인
+      if(fault_addr >= esp-32 && fault_addr >= PHYS_BASE - MAX_STACK_SIZE && fault_addr < PHYS_BASE) // stack 영역이 맞는지 확인
       {
          if(!expand_stack(esp, fault_addr, page_addr))
          {
