@@ -163,6 +163,9 @@ process_exit (void)
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
+    //현재 프로세스가 mapping한 mmap file들을 모두 닫아줘야 한다.
+
+
   if (pd != NULL) 
     {
       /* Correct ordering here is crucial.  We must set
@@ -172,15 +175,15 @@ process_exit (void)
          directory before destroying the process's page
          directory, or our active page directory will be one
          that's been freed (and cleared). */
-      cur->pagedir = NULL;
-      pagedir_activate (NULL);
-      pagedir_destroy (pd);
-
-      //현재 프로세스가 mapping한 mmap file들을 모두 닫아줘야 한다.
-      for(i = 0 ; i < cur -> mmap_num ; i++)
+      if(lock_held_by_current_thread(&filesys_lock)) lock_release(&filesys_lock);
+      if(lock_held_by_current_thread(&frame_lock)) lock_release(&frame_lock);
+      for(i = 0 ; i < cur -> mmap_num ; i++) //pagedir_destroy전에 munmap 해야 한다. 당연히...ㅠㅠ
       {
         munmap(i);
       }
+      cur->pagedir = NULL;
+      pagedir_activate (NULL);
+      pagedir_destroy (pd);
     }
 
   free_page_table(); // supplemental page table
