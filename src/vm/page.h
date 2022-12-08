@@ -5,7 +5,7 @@
 #include "filesys/off_t.h"
 #include <stdbool.h>
 
-enum page_type { ZERO, SWAP, FILE, CLEAR };
+enum page_type { PT_ZERO, PT_SWAP, PT_FILE, PT_FRAME };
 
 struct page
 {

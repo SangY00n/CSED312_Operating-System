@@ -47,11 +47,11 @@ void init_page_table(void)
 void hash_elem_destructor (struct hash_elem *e, void *aux)
 {
     struct page *page = hash_entry(e, struct page, hash_elem);
-    // if (page->page_type == CLEAR)
+    // if (page->page_type == PT_FRAME)
     // {
     //     frame_free(page->frame);
     // }
-    // else if (page->page_type == SWAP)
+    // else if (page->page_type == PT_SWAP)
     // {
     //     swap_destroy(page->swap_index);
     // }
@@ -82,7 +82,7 @@ bool alloc_page_with_file (uint8_t *upage, bool writable, struct file *file, off
     }
     else
     {
-        alloc_page->page_type = FILE;
+        alloc_page->page_type = PT_FILE;
         alloc_page->vaddr = upage;
         alloc_page->writable = writable;
 
@@ -117,7 +117,7 @@ bool alloc_page_with_zero(uint8_t *upage)
     }
     else
     {
-        alloc_page->page_type = ZERO;
+        alloc_page->page_type = PT_ZERO;
         alloc_page->vaddr = upage;
         alloc_page->writable = true;
 
@@ -146,6 +146,6 @@ void set_page_to_swap (struct page *page, int swap_index, bool is_dirty)
 {
     page->swap_index = swap_index;
     page->is_dirty = is_dirty;
-    page->page_type = SWAP;
+    page->page_type = PT_SWAP;
 }
 

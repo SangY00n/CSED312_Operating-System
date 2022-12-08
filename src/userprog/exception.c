@@ -211,7 +211,7 @@ bool load_page(struct page *cur_page)
    size_t page_read_bytes = cur_page->read_bytes < PGSIZE ? cur_page->read_bytes : PGSIZE; // 이번에 읽어올 page bytes
    size_t page_zero_bytes = PGSIZE - page_read_bytes; // 이번에 읽어온 뒤 0으로 채울 bytes
 
-   if (page_type == CLEAR) return true;
+   if (page_type == PT_FRAME) return true;
 
    if(frame_alloc(cur_page)==NULL) return false;
    else {
@@ -222,10 +222,10 @@ bool load_page(struct page *cur_page)
    
    switch(page_type)
    {
-      case ZERO:
+      case PT_ZERO:
          memset(cur_frame->kaddr, 0, PGSIZE);
          break;
-      case FILE:
+      case PT_FILE:
          if(file_read_at(cur_page->file, cur_frame->kaddr, page_read_bytes, cur_page->offset) != (int) page_read_bytes)
          {
             success = false;
@@ -233,7 +233,7 @@ bool load_page(struct page *cur_page)
          }
          memset(cur_frame->kaddr + page_read_bytes, 0, page_zero_bytes);
          break;
-      case SWAP:
+      case PT_SWAP:
          swap_in(cur_page, cur_page->swap_index, cur_frame->kaddr);
          break;
       default:
@@ -249,7 +249,7 @@ bool load_page(struct page *cur_page)
    if(success)
    {
       pagedir_set_dirty(cur_t->pagedir, cur_frame->kaddr, cur_page->is_dirty);
-      cur_page->page_type = CLEAR;
+      cur_page->page_type = PT_FRAME;
    }
    else
    {

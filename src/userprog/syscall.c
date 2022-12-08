@@ -486,14 +486,14 @@ void munmap(int mapping) //parameter mapid
         bool is_dirty = pagedir_is_dirty(t->pagedir, page->vaddr) || page->is_dirty;
         switch (page->page_type)
         {
-          case CLEAR: ;
+          case PT_CLEAR:
             if(is_dirty)
             {
               file_write_at(page->file, page->vaddr, page->read_bytes, page->offset); //buffer로부터 file에 적어주기
             }
             pagedir_clear_page(t->pagedir, page->vaddr);
             break;
-          case SWAP: ;
+          case PT_SWAP:
             struct page *temp_page = palloc_get_page(0);
             if(is_dirty)
             {
