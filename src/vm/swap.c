@@ -28,7 +28,7 @@ swap_in(struct page *page, int index, void*kaddr)
 
     for(i = 0 ; i < sector_num ; i++)
     {
-        block_read(swap_block, index*sector_num, kaddr + BLOCK_SECTOR_SIZE*i ); // 순서대로 block, sector, number : Reads sector SECTOR from BLOCK into BUFFER
+        block_read(swap_block, index*sector_num + i, kaddr + BLOCK_SECTOR_SIZE*i ); // 순서대로 block, sector, number : Reads sector SECTOR from BLOCK into BUFFER
     }
 
     lock_release(&swap_lock);
