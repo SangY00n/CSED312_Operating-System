@@ -33,6 +33,7 @@ frame_alloc(struct page *page)
     new_frame->kaddr = kaddr;
     new_frame->page = page;
     new_frame->thread = thread_current();
+    new_frame->is_accessed = true;
     page->frame = new_frame;
     list_push_back(&frame_table, &new_frame->elem);
 
@@ -87,7 +88,6 @@ get_frame(void* kaddr)
     return NULL;
 }
 
-//clock algorithm을 사용하여 page evict수행
 void
 evict_page(void)
 {
@@ -95,12 +95,8 @@ evict_page(void)
     struct list_elem *e;
     struct frame *cur_frame = clock_hand; //시계바늘 설정
     int index;
-    bool is_dirty;
+    bool is_dirty = false;
 
-    // if(cur_frame!=NULL)
-    // {
-    //     pagedir_set_accessed(cur_frame->thread->pagedir, cur_frame->page->vaddr, false);
-    // }
 
     while(1)
     {
@@ -117,32 +113,33 @@ evict_page(void)
             clock_hand = cur_frame;
         }
 
-        if(pagedir_is_accessed(cur_frame->thread->pagedir, cur_frame->page->vaddr)) //accesed bit 1
-        {
-            pagedir_set_accessed(cur_frame->thread->pagedir, cur_frame->page->vaddr, false);
-        }
-        else //accessed bit 0
+        if(cur_frame->thread->status == THREAD_DYING)
         {
             break;
-            //cur_frame을 victim frame으로 설정
-        } 
+        }
+        else
+        {
+            if(pagedir_is_accessed(cur_frame->thread->pagedir, cur_frame->page->vaddr)) //accesed bit 1
+            {
+                pagedir_set_accessed(cur_frame->thread->pagedir, cur_frame->page->vaddr, false);
+            }
+            else //accessed bit 0
+            {
+                pagedir_clear_page(cur_frame->thread->pagedir, cur_frame->page->vaddr);
+                        // is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->page->vaddr); //아마 오류날수도 있음. page일지 kaddr일지 생각해보자.
+                is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->kaddr); // 이렇게 바꿔도 결과 똑같음..
+                break;
+                //cur_frame을 victim frame으로 설정
+            } 
+        }
+
+        
     }
 
     //victim frame finded
 
-    pagedir_clear_page(cur_frame->thread->pagedir, cur_frame->page->vaddr);
-
     index = swap_out(cur_frame->kaddr);
-    // is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->page->vaddr); //아마 오류날수도 있음. page일지 kaddr일지 생각해보자.
-    is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->kaddr); // 이렇게 바꿔도 결과 똑같음..
     set_page_to_swap(cur_frame->page, index, is_dirty);
-
-
-
-    bool is_frame_lock = lock_held_by_current_thread(&frame_lock);
-    // if (is_frame_lock) lock_release(&frame_lock);
-    // frame_free(cur_frame); //free_frame으로 frame table 비워줌 // frame_free하면 안됨. frame이 free되어서 그 frame을 못쓰게 되어버림.
-    // if (is_frame_lock) lock_acquire(&frame_lock);
 
     // 위에꺼 대신 아래와 같이 해줘야 할 듯!!
     palloc_free_page(cur_frame->kaddr);

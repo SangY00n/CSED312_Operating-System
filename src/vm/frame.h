@@ -16,6 +16,8 @@ struct frame{
     struct thread *thread;
     
     struct list_elem elem;
+
+    bool is_accessed; // clock algorithm을 통한 evict page를 위한 bit
 };
 
 struct list frame_table; //frame table을 이루는 list

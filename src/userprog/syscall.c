@@ -441,9 +441,9 @@ int mmap(int fd, void *addr)
 //     if(page == NULL || page->frame ==NULL )
 //       continue;
 
-//     if(pagedir_is_dirty(t->pagedir, page->vaddr)) //dirty라면 disk에 적어야 한다.
+//     if(pagedir_is_dirty(t->pagedir, mmap_file->addr+offset)) //dirty라면 disk에 적어야 한다.
 //     {
-//       void * kpage = pagedir_get_page(t->pagedir, page->vaddr); //physical page찾기
+//       void * kpage = pagedir_get_page(t->pagedir, mmap_file->addr+offset); //physical page찾기
 //       //file_write_at (struct file *file, const void *buffer, off_t size, off_t file_ofs) 
 //       file_write_at(page->file, kpage, page->read_bytes, page->offset); //buffer로부터 file에 적어주기
 //     }
@@ -499,6 +499,10 @@ void munmap(int mapping) //parameter mapid
             {
               swap_in(page, page->swap_index, temp_page);
               file_write_at(mmap_file->file, temp_page, page->read_bytes, page->offset);
+            }
+            else
+            {
+              bitmap_set(swap_table, page->swap_index, false);
             }
             palloc_free_page(temp_page);
             break;        
