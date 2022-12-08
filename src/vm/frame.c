@@ -3,7 +3,7 @@
 #include "userprog/pagedir.h"
 #include "threads/malloc.h"
 
-struct frame *clock_hand; //clock 알고리즘에 사용될 시계바늘
+struct list_elem *clock_hand; //clock 알고리즘에 사용될 시계바늘
 
 //frame list와 lock 초기화 함수
 void
@@ -91,57 +91,41 @@ get_frame(void* kaddr)
 void
 evict_page(void)
 {
-    struct page *page;
-    struct list_elem *e;
-    struct frame *cur_frame = clock_hand; //시계바늘 설정
     int index;
     bool is_dirty = false;
-
+    struct frame *cur;
 
     while(1)
     {
-        if(cur_frame == NULL || list_next(&cur_frame->elem) == list_end(&frame_table)) //처음 evict할 경우 or 한바퀴 다 돌았을 경우->frame의 처음으로
-        {
-            e = list_begin(&frame_table);
-            cur_frame = list_entry(e, struct frame, elem);
-            clock_hand = cur_frame;
-        }
-        else //아니면 다음 frame으로 이동
-        {
-            e = list_next(&cur_frame->elem);
-            cur_frame = list_entry(e, struct frame, elem);
-            clock_hand = cur_frame;
-        }
-
-        if(cur_frame->thread->status == THREAD_DYING)
-        {
-            break;
-        }
+        if(clock_hand == NULL || list_back(&frame_table))
+            clock_hand = list_front(&frame_table);
         else
-        {
-            if(pagedir_is_accessed(cur_frame->thread->pagedir, cur_frame->page->vaddr)) //accesed bit 1
+            clock_hand = list_next(clock_hand);
+
+            cur = list_entry(clock_hand, struct frame, elem);
+
+            if(pagedir_is_accessed(cur->thread->pagedir, cur->page->vaddr)) //accesed bit 1
             {
-                pagedir_set_accessed(cur_frame->thread->pagedir, cur_frame->page->vaddr, false);
+                pagedir_set_accessed(cur->thread->pagedir, cur->page->vaddr, false);
             }
             else //accessed bit 0
             {
-                pagedir_clear_page(cur_frame->thread->pagedir, cur_frame->page->vaddr);
+                pagedir_clear_page(cur->thread->pagedir, cur->page->vaddr);
                         // is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->page->vaddr); //아마 오류날수도 있음. page일지 kaddr일지 생각해보자.
-                is_dirty = pagedir_is_dirty(cur_frame->thread->pagedir, cur_frame->kaddr); // 이렇게 바꿔도 결과 똑같음..
+                is_dirty = pagedir_is_dirty(cur->thread->pagedir, cur->kaddr); // 이렇게 바꿔도 결과 똑같음..
                 break;
                 //cur_frame을 victim frame으로 설정
             } 
-        }
-
-        
     }
-
+    
     //victim frame finded
-
-    index = swap_out(cur_frame->kaddr);
-    set_page_to_swap(cur_frame->page, index, is_dirty);
+    swap_out(cur->kaddr);
+    index = swap_out(cur->kaddr);
+    set_page_to_swap(cur->page, index, is_dirty);
 
     // 위에꺼 대신 아래와 같이 해줘야 할 듯!!
-    palloc_free_page(cur_frame->kaddr);
-    list_remove(&cur_frame->elem);
+    palloc_free_page(cur->kaddr);
+    list_remove(&cur->elem);
+
+    // frame_free(cur_frame); free frame하면 안될 듯. 이미할당되어있으니
 }
