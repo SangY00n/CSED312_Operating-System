@@ -350,7 +350,7 @@ int mmap(int fd, void *addr)
   int read_byte, zero_byte;
 
   if(f == NULL || fd == 1 || fd == 0) return -1;
-  if(addr == NULL) return -1;
+  if(addr == NULL || addr == 0) return -1;
   if((int)addr % PGSIZE != 0) return -1; //page not aligned return -1
 
   mmap_file = (struct mmap_file*) malloc(sizeof(struct mmap_file));
@@ -495,9 +495,9 @@ void munmap(int mapping) //parameter mapid
             break;
           case SWAP: ;
             struct page *temp_page = palloc_get_page(0);
-            swap_in(page, page->swap_index, temp_page);
             if(is_dirty)
             {
+              swap_in(page, page->swap_index, temp_page);
               file_write_at(mmap_file->file, temp_page, page->read_bytes, page->offset);
             }
             palloc_free_page(temp_page);
