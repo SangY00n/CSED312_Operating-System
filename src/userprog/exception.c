@@ -5,7 +5,7 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
-
+#include <string.h>
 #include "userprog/syscall.h"
 
 #include "vm/frame.h"

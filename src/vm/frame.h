@@ -27,6 +27,7 @@ void frame_init(void);
 void* frame_alloc(struct page *page);
 void frame_free(struct frame *frame);
 struct frame* get_frame(void* kaddr);
+// struct frame* evict_page(void);
 void evict_page(void);
 
 
