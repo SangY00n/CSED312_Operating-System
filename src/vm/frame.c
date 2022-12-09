@@ -65,6 +65,7 @@ frame_free(struct frame *frame)
     }
     if(list_frame != frame) return; //frame table에서 못찾은 경우 예외처리
 
+    frame->page->frame = NULL;
     palloc_free_page(frame->kaddr);
     free(frame);
 

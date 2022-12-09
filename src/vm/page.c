@@ -55,7 +55,7 @@ void hash_elem_destructor (struct hash_elem *e, void *aux)
     // {
     //     swap_destroy(page->swap_index);
     // }
-    free_page(page);
+    free(page);
 }
 
 void free_page_table(void)

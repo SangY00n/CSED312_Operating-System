@@ -520,19 +520,11 @@ setup_stack (void **esp)
   }
   struct page *stack_page = page_find(upage);
   kpage = frame_alloc(stack_page); // 찬호가 구현할 예정
-  if (kpage != NULL) 
+  memset(stack_page->frame->kaddr, 0, PGSIZE); // 0으로 초기화
+  success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+  if (success)
   {
-    memset(stack_page->frame->kaddr, 0, PGSIZE); // 0으로 초기화
-    success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-    if (success)
-    {
-      *esp = PHYS_BASE;
-    }
-    else
-    {
-      frame_free(stack_page->frame); // 찬호가 구현할 예정
-      free_page(stack_page); 
-    }
+    *esp = PHYS_BASE;
   }
   else
   {
