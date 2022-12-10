@@ -243,13 +243,13 @@ syscall_open(const char *file)
   bool is_cur_lock = lock_held_by_current_thread(&filesys_lock);
   if (!is_cur_lock ) lock_acquire(&filesys_lock);
   if(file==NULL) {
-    if (!is_cur_lock) lock_release(&filesys_lock);
+    lock_release(&filesys_lock);
     syscall_exit(-1);
   }
 
   fp = filesys_open(file);
   if(fp==NULL) {
-    if (!is_cur_lock ) lock_release(&filesys_lock);
+    lock_release(&filesys_lock);
     return -1;
   } else {
     if(strcmp(cur_t->name, file)==0) {

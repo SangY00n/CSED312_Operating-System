@@ -218,7 +218,7 @@ bool load_page(struct page *cur_page)
    }
 
    bool success = true;
-   
+   bool cur_lock = lock_held_by_current_thread(&filesys_lock);
    switch(page_type)
    {
       case PT_ZERO:
@@ -228,11 +228,11 @@ bool load_page(struct page *cur_page)
          if(file_read_at(cur_page->file, cur_frame->kaddr, page_read_bytes, cur_page->offset) != (int) page_read_bytes)
          {
             success = false;
-            lock_release(&filesys_lock);
-            break;
+            // lock_release(&filesys_lock);
+            syscall_exit(-1);
          }
          memset(cur_frame->kaddr + page_read_bytes, 0, page_zero_bytes);
-         lock_release(&filesys_lock);
+         if(!cur_lock) lock_release(&filesys_lock);
          break;
       case PT_SWAP:
          swap_in(cur_page, cur_page->swap_index, cur_frame->kaddr);
