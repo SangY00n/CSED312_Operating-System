@@ -224,12 +224,14 @@ bool load_page(struct page *cur_page)
       case PT_ZERO:
          break;
       case PT_FILE:
-         if (!lock_held_by_current_thread(&filesys_lock) ) lock_acquire(&filesys_lock);
+         if (!cur_lock )//현재 thread가 filesys acquire했다면 acquire안해도 ok
+            lock_acquire(&filesys_lock);
          if(file_read_at(cur_page->file, cur_frame->kaddr, page_read_bytes, cur_page->offset) != (int) page_read_bytes)
          {
-            success = false;
-            // lock_release(&filesys_lock);
-            syscall_exit(-1);
+            if (!cur_lock )
+               lock_release(&filesys_lock);
+            frame_free(cur_frame);
+            return false;
          }
          memset(cur_frame->kaddr + page_read_bytes, 0, page_zero_bytes);
          if(!cur_lock) 
@@ -241,12 +243,9 @@ bool load_page(struct page *cur_page)
       default:
          break;
    }
-   if(success)
+   if(!pagedir_set_page(cur_t->pagedir, cur_page->vaddr, cur_frame->kaddr, cur_page->writable))
    {
-      if(!pagedir_set_page(cur_t->pagedir, cur_page->vaddr, cur_frame->kaddr, cur_page->writable))
-      {
-         success = false;
-      }
+     success = false;
    }
    if(success)
    {
