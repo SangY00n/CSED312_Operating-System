@@ -47,14 +47,7 @@ void init_page_table(void)
 void hash_elem_destructor (struct hash_elem *e, void *aux)
 {
     struct page *page = hash_entry(e, struct page, hash_elem);
-    // if (page->page_type == PT_FRAME)
-    // {
-    //     frame_free(page->frame);
-    // }
-    // else if (page->page_type == PT_SWAP)
-    // {
-    //     swap_destroy(page->swap_index);
-    // }
+    //주의! descructor should not change the hash table
     free(page);
 }
 
