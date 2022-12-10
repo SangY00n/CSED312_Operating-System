@@ -178,8 +178,8 @@ process_exit (void)
          directory before destroying the process's page
          directory, or our active page directory will be one
          that's been freed (and cleared). */
-      if(lock_held_by_current_thread(&filesys_lock)) lock_release(&filesys_lock);
-      if(lock_held_by_current_thread(&frame_lock)) lock_release(&frame_lock);
+      // if(lock_held_by_current_thread(&filesys_lock)) lock_release(&filesys_lock);
+      // if(lock_held_by_current_thread(&frame_lock)) lock_release(&frame_lock);
       for(i = 0 ; i < cur -> mmap_num ; i++) //pagedir_destroy전에 munmap 해야 한다. 당연히...ㅠㅠ
       {
         munmap(i);
@@ -193,6 +193,7 @@ process_exit (void)
           syscall_close(fd_walker);
           fd_walker--;
         }
+        
         palloc_free_page(cur->fd_table);
         cur->pagedir = NULL;
         pagedir_activate (NULL);

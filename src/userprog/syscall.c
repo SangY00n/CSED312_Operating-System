@@ -240,8 +240,7 @@ syscall_open(const char *file)
   // 현재 check_address는 주소가 유저영역이 아니라면 exit하는 형태
   // 주소가 유저영역이 아니어도 되나?
   check_address(file);
-  bool is_cur_lock = lock_held_by_current_thread(&filesys_lock);
-  if (!is_cur_lock ) lock_acquire(&filesys_lock);
+    lock_acquire(&filesys_lock);
   if(file==NULL) {
     lock_release(&filesys_lock);
     syscall_exit(-1);
@@ -259,7 +258,7 @@ syscall_open(const char *file)
     
     cur_t->fd_counter++;
     int ans = cur_t->fd_counter - 1;
-    if (!is_cur_lock) lock_release(&filesys_lock);
+    lock_release(&filesys_lock);
     return ans;
   }
 }
@@ -284,7 +283,6 @@ syscall_filesize(int fd)
 int
 syscall_read (int fd, void *buffer, unsigned size)
 {
-  bool is_cur_lock = lock_held_by_current_thread(&filesys_lock);
   int read_result = -1;
   struct thread *cur_t = thread_current();
   check_address(buffer);
@@ -292,19 +290,17 @@ syscall_read (int fd, void *buffer, unsigned size)
     syscall_exit(-1);
   }
   else if (fd == 0) {
-    if (!is_cur_lock ) lock_acquire(&filesys_lock);
+    lock_acquire(&filesys_lock);
     read_result = input_getc();
     lock_release(&filesys_lock);
   } else {
     struct file *fp = cur_t->fd_table[fd];
     if(fp==NULL)
       syscall_exit(-1);
-    if (!is_cur_lock )
-    {
       lock_acquire(&filesys_lock);
-    }
+
     read_result = file_read(fp, buffer, size);
-    if (lock_held_by_current_thread(&filesys_lock))lock_release(&filesys_lock);
+      lock_release(&filesys_lock);
   }
 
   return read_result;
@@ -314,14 +310,13 @@ syscall_read (int fd, void *buffer, unsigned size)
 int
 syscall_write (int fd, void *buffer, unsigned size)
 {
-  bool is_cur_lock = lock_held_by_current_thread(&filesys_lock);
   int write_result = -1;
   struct thread *cur_t = thread_current();
   check_address(buffer);
   if(fd<1 || fd>=cur_t->fd_counter) {
     syscall_exit(-1);
   } else if (fd == 1) {
-    if (!is_cur_lock ) lock_acquire(&filesys_lock);
+    lock_acquire(&filesys_lock);
     putbuf(buffer, size);
     lock_release(&filesys_lock);
     return size;
@@ -330,7 +325,7 @@ syscall_write (int fd, void *buffer, unsigned size)
     if(fp == NULL)
       syscall_exit(-1);
     else {
-      if (!is_cur_lock ) lock_acquire(&filesys_lock);
+      lock_acquire(&filesys_lock);
       write_result = file_write(fp, buffer, size);
       lock_release(&filesys_lock);
     }
@@ -447,7 +442,8 @@ int mmap(int fd, void *addr)
 
     zero_byte = PGSIZE - read_byte; // pgsize만큼 읽으면 zero = 0
 
-    alloc_page_with_file (addr+offset , true , open_f, offset, read_byte, zero_byte); //upage, writable,*file,offset, read_bytes, zero_bytes)
+    //upage, writable,*file,offset, read_bytes, zero_bytes)
+    alloc_page_with_file (addr+offset , true , open_f, offset, read_byte, zero_byte); 
   }
 
   list_push_back(&t->mmap_list, &mmap_file->elem);
@@ -493,14 +489,12 @@ void munmap(int mapping) //parameter mapid
     if(pagedir_is_dirty(t->pagedir, mmap_file->addr+offset)) //dirty라면 disk에 적어야 한다.
     {
       void * kpage = pagedir_get_page(t->pagedir, mmap_file->addr+offset); //physical page찾기
-      //file_write_at (struct file *file, const void *buffer, off_t size, off_t file_ofs) 
       file_write_at(page->file, kpage, page->read_bytes, page->offset); //buffer로부터 file에 적어주기
     }
     free_page(page);
   }
   file_close(mmap_file->file);
   list_remove(e);
-  // free(mmap_file);
   
   lock_release(&filesys_lock);
    
