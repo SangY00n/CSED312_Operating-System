@@ -24,6 +24,10 @@ void syscall_init (void);
 void check_address(void *addresss);
 void get_argument(int *esp, int *arg, int count);
 
+struct page *check_vaddr(void *vaddr);
+void check_buf(const void *buf, size_t size, bool write);
+void check_str(const char *str);
+
 void syscall_halt();
 pid_t syscall_exec(const char *cmd_line);
 bool syscall_create(const char *file, unsigned initial_size);

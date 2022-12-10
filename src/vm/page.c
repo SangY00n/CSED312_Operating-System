@@ -2,7 +2,7 @@
 #include "threads/thread.h"
 #include "threads/malloc.h"
 #include "vm/swap.h"
-
+#include "threads/vaddr.h"
 unsigned page_hash_hash (const struct hash_elem *e, void *aux)
 {
     const struct page *p = hash_entry(e, struct page, hash_elem);
@@ -29,7 +29,7 @@ struct page *page_find (void *addr)
     free(temp_page);
     if(e==NULL)
     {
-        return e;
+        return NULL;
     }
     else
     {
@@ -74,6 +74,7 @@ void free_page(struct page *page)
 
 bool alloc_page_with_file (uint8_t *upage, bool writable, struct file *file, off_t offset, size_t read_bytes, size_t zero_bytes)
 {
+    // ASSERT(pg_ofs(upage) == 0);
     struct thread *cur_t = thread_current();
     struct page *alloc_page = (struct page *)malloc(sizeof(struct page));
     if(alloc_page == NULL)
@@ -109,6 +110,7 @@ bool alloc_page_with_file (uint8_t *upage, bool writable, struct file *file, off
 
 bool alloc_page_with_zero(uint8_t *upage)
 {
+    // ASSERT(pg_ofs(upage) == 0);
     struct thread *cur_t = thread_current();
     struct page *alloc_page = (struct page *)malloc(sizeof(struct page));
     if(alloc_page == NULL)

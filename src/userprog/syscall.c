@@ -17,7 +17,6 @@
 #include "vm/swap.h"
 #endif
 
-
 static void syscall_handler (struct intr_frame *);
 
 void
@@ -36,6 +35,42 @@ void check_address(void *address)
   else return;
 }
 
+struct page *check_vaddr(void *vaddr)
+{
+  void *addr = pg_round_down(vaddr);
+  struct page *p = page_find(addr);
+  if (p==NULL)
+  {
+    syscall_exit(-1);
+  }
+  return p;
+}
+
+void check_buf(const void *buf, size_t size, bool write)
+{
+  check_address(buf);
+  check_address(buf+size);
+
+  size_t i = 0;
+  for(i=0;i<=size;i++)
+  {
+    struct page *temp_page = check_vaddr(buf+i);
+    if(write && !temp_page->writable)
+    {
+      syscall_exit(-1);
+    }
+  }
+}
+void check_str(const char *str)
+{
+  int i=-1;
+  do
+  {
+    i++;
+    check_address(str+i);
+  } while(*(str+i) != '\0');
+}
+
 //유저 스택의 인자들을 arg에 저장
 void
 get_argument(int *esp, int *arg, int count)
@@ -51,7 +86,7 @@ get_argument(int *esp, int *arg, int count)
 //syscall.h 헤더파일 작성할 것!!!!!!!!!!!!!!!!!!!!!!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 static void
 syscall_handler (struct intr_frame *f) 
-{
+{ 
   uint32_t *sp = f->esp;
   //스택 포인터 valid check
   check_address(sp);
@@ -72,6 +107,7 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_EXEC:
       get_argument(sp, argv, 1);
+      // check_str((const char *)argv[0]);
       f->eax = syscall_exec((const char *)argv[0]);
       break;
     case SYS_WAIT:
@@ -80,10 +116,12 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_CREATE:
       get_argument(sp, argv, 2);
+      // check_str((const char *)argv[0]);
       f-> eax = syscall_create((const char*)argv[0], (unsigned )argv[1]);
       break;
     case SYS_REMOVE:
       get_argument(sp, argv, 1);
+      // check_str((const char *)argv[0]);
       f->eax = syscall_remove((const char*)argv[0]);
       break;
     case SYS_OPEN:
@@ -96,10 +134,12 @@ syscall_handler (struct intr_frame *f)
       break;
     case SYS_READ:
       get_argument (f->esp, argv, 3);
+      // check_buf((const void *)argv[1], (size_t)argv[2], true);
       f->eax = syscall_read(argv[0], argv[1], argv[2]);
       break;
     case SYS_WRITE:
       get_argument (f->esp, argv, 3);
+      // check_buf((const void *)argv[1], (size_t)argv[2], false);
       f->eax = syscall_write(argv[0], argv[1], argv[2]);
       break;
     case SYS_SEEK:
@@ -132,16 +172,14 @@ void syscall_halt()
 }
 
 pid_t syscall_exec(const char *cmd_line)
-{
+{ 
   //자식 프로세스 생성 및 실행하는 syscall
   pid_t pid;
   struct thread* child_process;
   pid = process_execute(cmd_line); //자식 프로세스 생성
-  if(pid == -1) return -1;
+  if(pid == TID_ERROR) return -1;
   //pid로 자식 검색
   child_process = get_child_process(pid);
-
-  sema_down(& child_process->sema_load); //자식 로드될때까지 대기
 
   if ( !(child_process->is_load)) return -1;
     
@@ -176,6 +214,8 @@ syscall_exit (int status)
 {
   struct thread *cur = thread_current ();
   cur->exit_status = status;
+  if (!cur->is_load) sema_up (&(cur->sema_load));
+
   printf("%s: exit(%d)\n", cur->name, status); /* Print Termination Messages */
   thread_exit();
 }
@@ -200,24 +240,27 @@ syscall_open(const char *file)
   // 현재 check_address는 주소가 유저영역이 아니라면 exit하는 형태
   // 주소가 유저영역이 아니어도 되나?
   check_address(file);
-
-  lock_acquire(&filesys_lock);
+  bool is_cur_lock = lock_held_by_current_thread(&filesys_lock);
+  if (!is_cur_lock ) lock_acquire(&filesys_lock);
   if(file==NULL) {
-    lock_release(&filesys_lock);
+    if (!is_cur_lock) lock_release(&filesys_lock);
     syscall_exit(-1);
   }
 
   fp = filesys_open(file);
   if(fp==NULL) {
-    lock_release(&filesys_lock);
+    if (!is_cur_lock ) lock_release(&filesys_lock);
     return -1;
   } else {
     if(strcmp(cur_t->name, file)==0) {
       file_deny_write(fp);
     }
     cur_t->fd_table[cur_t->fd_counter] = fp;
-    lock_release(&filesys_lock);
-    return cur_t->fd_counter++;
+    
+    cur_t->fd_counter++;
+    int ans = cur_t->fd_counter - 1;
+    if (!is_cur_lock) lock_release(&filesys_lock);
+    return ans;
   }
 }
 
@@ -241,6 +284,7 @@ syscall_filesize(int fd)
 int
 syscall_read (int fd, void *buffer, unsigned size)
 {
+  bool is_cur_lock = lock_held_by_current_thread(&filesys_lock);
   int read_result = -1;
   struct thread *cur_t = thread_current();
   check_address(buffer);
@@ -248,17 +292,19 @@ syscall_read (int fd, void *buffer, unsigned size)
     syscall_exit(-1);
   }
   else if (fd == 0) {
-    lock_acquire(&filesys_lock);
+    if (!is_cur_lock ) lock_acquire(&filesys_lock);
     read_result = input_getc();
     lock_release(&filesys_lock);
   } else {
     struct file *fp = cur_t->fd_table[fd];
     if(fp==NULL)
       syscall_exit(-1);
-    
-    lock_acquire(&filesys_lock);
+    if (!is_cur_lock )
+    {
+      lock_acquire(&filesys_lock);
+    }
     read_result = file_read(fp, buffer, size);
-    lock_release(&filesys_lock);
+    if (lock_held_by_current_thread(&filesys_lock))lock_release(&filesys_lock);
   }
 
   return read_result;
@@ -268,13 +314,14 @@ syscall_read (int fd, void *buffer, unsigned size)
 int
 syscall_write (int fd, void *buffer, unsigned size)
 {
+  bool is_cur_lock = lock_held_by_current_thread(&filesys_lock);
   int write_result = -1;
   struct thread *cur_t = thread_current();
   check_address(buffer);
   if(fd<1 || fd>=cur_t->fd_counter) {
     syscall_exit(-1);
   } else if (fd == 1) {
-    lock_acquire(&filesys_lock);
+    if (!is_cur_lock ) lock_acquire(&filesys_lock);
     putbuf(buffer, size);
     lock_release(&filesys_lock);
     return size;
@@ -283,7 +330,7 @@ syscall_write (int fd, void *buffer, unsigned size)
     if(fp == NULL)
       syscall_exit(-1);
     else {
-      lock_acquire(&filesys_lock);
+      if (!is_cur_lock ) lock_acquire(&filesys_lock);
       write_result = file_write(fp, buffer, size);
       lock_release(&filesys_lock);
     }
@@ -321,11 +368,13 @@ syscall_close(int fd)
   struct file *fp;
   struct thread *cur_t = thread_current();
   int fd_walker;
-
   if(fd<2 || fd>=cur_t->fd_counter) {
     syscall_exit(-1);
-  } else {
+  } 
+  else 
+  {
     fp = cur_t->fd_table[fd];
+
     if(fp!=NULL) {
       file_close(fp);
       cur_t->fd_table[fd] = NULL;
@@ -340,7 +389,7 @@ syscall_close(int fd)
 }
 
 int mmap(int fd, void *addr)
-{
+{ 
   struct mmap_file *mmap_file;
   struct thread *t = thread_current();
   struct file *f = t->fd_table[fd];

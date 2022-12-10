@@ -313,14 +313,7 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
-  
-  #ifdef USERPROG
-  cur_t->is_exit = true; // process descriptor에 process 종료 표시
-  sema_up(&(cur_t->sema_exit)); // parent process의 process_wait()에서의 wait을 풀어줌
-  #endif
   cur_t->status = THREAD_DYING;
-
-
   schedule ();
   NOT_REACHED ();
 }

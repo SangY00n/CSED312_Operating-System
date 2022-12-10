@@ -167,7 +167,6 @@ page_fault (struct intr_frame *f)
    if(not_present)
    {
       void *page_addr = (void*)pg_round_down(fault_addr);
-      ASSERT(page_addr < PHYS_BASE);
       void *esp = user ? f->esp : thread_current()->esp;
       if(fault_addr >= esp-32 && fault_addr >= PHYS_BASE - MAX_STACK_SIZE && fault_addr < PHYS_BASE) // stack 영역이 맞는지 확인
       {
@@ -186,7 +185,6 @@ page_fault (struct intr_frame *f)
          }
       }
    }
-
   // Page fault 에러 메시지 출력 방지를 위한 syscall_exit(-1) 호출
   syscall_exit(-1);
 
@@ -204,6 +202,7 @@ page_fault (struct intr_frame *f)
 bool load_page(struct page *cur_page)
 {
    ASSERT(cur_page!=NULL);
+
    struct thread *cur_t = thread_current();
    struct frame *cur_frame;
    enum page_type page_type = cur_page->page_type;
@@ -223,15 +222,17 @@ bool load_page(struct page *cur_page)
    switch(page_type)
    {
       case PT_ZERO:
-         memset(cur_frame->kaddr, 0, PGSIZE);
          break;
       case PT_FILE:
+         if (!lock_held_by_current_thread(&filesys_lock) ) lock_acquire(&filesys_lock);
          if(file_read_at(cur_page->file, cur_frame->kaddr, page_read_bytes, cur_page->offset) != (int) page_read_bytes)
          {
             success = false;
+            lock_release(&filesys_lock);
             break;
          }
          memset(cur_frame->kaddr + page_read_bytes, 0, page_zero_bytes);
+         lock_release(&filesys_lock);
          break;
       case PT_SWAP:
          swap_in(cur_page, cur_page->swap_index, cur_frame->kaddr);

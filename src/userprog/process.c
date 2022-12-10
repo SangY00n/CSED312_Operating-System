@@ -56,6 +56,8 @@ process_execute (const char *file_name)
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (program_name, PRI_DEFAULT, start_process, fn_copy);
+  sema_down(&get_child_process(tid)->sema_load); //자식 로드될때까지 대기
+
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
 
@@ -103,7 +105,7 @@ start_process (void *file_name_)
     stack_argument_init(argv, argc, &if_.esp);
     /* for Debugging */
     // hex_dump(if_.esp , if_.esp , PHYS_BASE - if_.esp , true);
-    thread_current()->is_load = true;
+    // thread_current()->is_load = true;
   }
 
   palloc_free_page (file_name);
@@ -191,13 +193,12 @@ process_exit (void)
           fd_walker--;
         }
         palloc_free_page(cur->fd_table);
-
         cur->pagedir = NULL;
         pagedir_activate (NULL);
         pagedir_destroy (pd);
     }
-
-
+  cur->is_exit = true; // process descriptor에 process 종료 표시
+  sema_up(&(cur->sema_exit)); // parent process의 process_wait()에서의 wait을 풀어줌
 }
 
 /* Sets up the CPU for running user code in the current
@@ -403,7 +404,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   t->file_exec = file; // 이걸 하면 갑자기 다 FAIL 뜸.. 이유는 모르겠다. 해야할 것 같은디
   // -> load()와 proces_exit()에서 각각 file_close()를 호출해서 문제였음. load()에 있던 걸 지워줌 -> 해결 완료
   file_deny_write(file); // for denying writes to executables
-  
+  thread_current()->is_load = true;
 
  done:
   /* We arrive here whether the load is successful or not. */

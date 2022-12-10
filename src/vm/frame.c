@@ -84,7 +84,7 @@ frame_init(void) {
 //4test
 void *
 frame_alloc(struct page *page)
-{
+{  
     struct frame *new_frame = malloc(sizeof(struct frame)); //새롭게 할당할 frame
     if(new_frame == NULL) return NULL;
 
