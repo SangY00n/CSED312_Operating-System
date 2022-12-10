@@ -151,7 +151,7 @@ process_wait (tid_t child_tid UNUSED)
 
     palloc_free_page (child_thread);
     return exit_code;
-    
+
   }
 }
 

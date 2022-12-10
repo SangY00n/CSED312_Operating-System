@@ -232,7 +232,8 @@ bool load_page(struct page *cur_page)
             syscall_exit(-1);
          }
          memset(cur_frame->kaddr + page_read_bytes, 0, page_zero_bytes);
-         if(!cur_lock) lock_release(&filesys_lock);
+         if(!cur_lock) 
+            lock_release(&filesys_lock);
          break;
       case PT_SWAP:
          swap_in(cur_page, cur_page->swap_index, cur_frame->kaddr);

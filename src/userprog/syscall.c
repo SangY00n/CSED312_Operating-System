@@ -389,7 +389,7 @@ syscall_close(int fd)
 }
 
 int mmap(int fd, void *addr)
-{ 
+{
   struct mmap_file *mmap_file;
   struct thread *t = thread_current();
   struct file *f = t->fd_table[fd];
@@ -456,6 +456,57 @@ int mmap(int fd, void *addr)
   return mmap_file->mapid;
 }
 
+void munmap(int mapping) //parameter mapid
+{
+  struct thread *t = thread_current();
+  struct list_elem *e;
+  struct mmap_file *mmap_file;
+  struct page *page;
+  int offset;
+
+  //mapping 존재 안하는 경우
+  if (mapping >= t->mmap_num) return;
+
+  //find mmapping by mapping id
+
+  for(e = list_begin(&t->mmap_list); e != list_end(&t->mmap_list) ; e = list_next(e))
+  {
+    mmap_file = list_entry(e, struct mmap_file, elem);
+    if(mmap_file->mapid == mapping)
+    {
+      break;
+    }
+  }
+  if(mmap_file->mapid != mapping)  //fail to find mapping
+  {
+    return;
+  }
+
+  lock_acquire(&filesys_lock);
+  
+  for(offset = 0; offset < file_length(mmap_file->file) ; offset += PGSIZE)
+  {
+    page = page_find(mmap_file->addr + offset);
+    if(page == NULL || page->frame ==NULL )
+      continue;
+
+    if(pagedir_is_dirty(t->pagedir, mmap_file->addr+offset)) //dirty라면 disk에 적어야 한다.
+    {
+      void * kpage = pagedir_get_page(t->pagedir, mmap_file->addr+offset); //physical page찾기
+      //file_write_at (struct file *file, const void *buffer, off_t size, off_t file_ofs) 
+      file_write_at(page->file, kpage, page->read_bytes, page->offset); //buffer로부터 file에 적어주기
+    }
+    free_page(page);
+  }
+  file_close(mmap_file->file);
+  list_remove(e);
+  // free(mmap_file);
+  
+  lock_release(&filesys_lock);
+   
+  return;
+}
+
 // void munmap(int mapping) //parameter mapid
 // {
 //   struct thread *t = thread_current();
@@ -473,101 +524,52 @@ int mmap(int fd, void *addr)
 //   for(e = list_begin(&t->mmap_list); e != list_end(&t->mmap_list) ; e = list_next(e))
 //   {
 //     mmap_file = list_entry(e, struct mmap_file, elem);
-//     if(mmap_file->mapid == mapping)
-//     {
-//       break;
+//     if(mmap_file == NULL)
+//     {continue;
 //     }
-//   }
-//   if(mmap_file->mapid != mapping)  //fail to find mapping
-//   {
-//     lock_release(&filesys_lock);
-//     return;
-//   }
-  
-//   for(offset = 0; offset < file_length(mmap_file->file) ; offset += PGSIZE)
-//   {
-//     page = page_find(mmap_file->addr + offset);
-//     if(page == NULL || page->frame ==NULL )
-//       continue;
+//     else if(mmap_file->mapid == mapping)
+//     {
+//       for(offset = 0; offset < file_length(mmap_file->file) ; offset += PGSIZE)
+//       {
+//         page = page_find(mmap_file->addr + offset);
+//         if(page == NULL || page->frame ==NULL) continue;
 
-//     if(pagedir_is_dirty(t->pagedir, mmap_file->addr+offset)) //dirty라면 disk에 적어야 한다.
-//     {
-//       void * kpage = pagedir_get_page(t->pagedir, mmap_file->addr+offset); //physical page찾기
-//       //file_write_at (struct file *file, const void *buffer, off_t size, off_t file_ofs) 
-//       file_write_at(page->file, kpage, page->read_bytes, page->offset); //buffer로부터 file에 적어주기
+//         bool is_dirty = pagedir_is_dirty(t->pagedir, page->vaddr) || page->is_dirty;
+//         switch (page->page_type)
+//         {
+//           case PT_FRAME: ;
+//             if(is_dirty)
+//             {
+//               file_write_at(page->file, page->vaddr, page->read_bytes, page->offset); //buffer로부터 file에 적어주기
+//             }
+//             pagedir_clear_page(t->pagedir, page->vaddr);
+//             break;
+//           case PT_SWAP: ;
+//             struct page *temp_page = palloc_get_page(0);
+//             if(is_dirty)
+//             {
+//               swap_in(page, page->swap_index, temp_page);
+//               file_write_at(mmap_file->file, temp_page, page->read_bytes, page->offset);
+//             }
+//             else
+//             {
+//               bitmap_set(swap_table, page->swap_index, false);
+//             }
+//             palloc_free_page(temp_page);
+//             break;        
+//           default:
+//             break;
+//         }        
+//       }
+//       file_close(mmap_file->file);
+//       list_remove(e);
+//       free(mmap_file);
+      
+
+      
+//       return;
 //     }
-//     free_page(page);
 //   }
-//   file_close(mmap_file->file);
-//   list_remove(e);
-//   free(mmap_file);
   
 //   lock_release(&filesys_lock);
-   
-//   return;
 // }
-
-void munmap(int mapping) //parameter mapid
-{
-  struct thread *t = thread_current();
-  struct list_elem *e;
-  struct mmap_file *mmap_file;
-  struct page *page;
-  int offset;
-
-  //mapping 존재 안하는 경우
-  if (mapping >= t->mmap_num) return;
-
-  lock_acquire(&filesys_lock);
-  //find mmapping by mapping id
-
-  for(e = list_begin(&t->mmap_list); e != list_end(&t->mmap_list) ; e = list_next(e))
-  {
-    mmap_file = list_entry(e, struct mmap_file, elem);
-    if(mmap_file == NULL) continue;
-    else if(mmap_file->mapid == mapping)
-    {
-      for(offset = 0; offset < file_length(mmap_file->file) ; offset += PGSIZE)
-      {
-        page = page_find(mmap_file->addr + offset);
-        if(page == NULL || page->frame ==NULL) continue;
-
-        bool is_dirty = pagedir_is_dirty(t->pagedir, page->vaddr) || page->is_dirty;
-        switch (page->page_type)
-        {
-          case PT_FRAME: ;
-            if(is_dirty)
-            {
-              file_write_at(page->file, page->vaddr, page->read_bytes, page->offset); //buffer로부터 file에 적어주기
-            }
-            pagedir_clear_page(t->pagedir, page->vaddr);
-            break;
-          case PT_SWAP: ;
-            struct page *temp_page = palloc_get_page(0);
-            if(is_dirty)
-            {
-              swap_in(page, page->swap_index, temp_page);
-              file_write_at(mmap_file->file, temp_page, page->read_bytes, page->offset);
-            }
-            else
-            {
-              bitmap_set(swap_table, page->swap_index, false);
-            }
-            palloc_free_page(temp_page);
-            break;        
-          default:
-            break;
-        }        
-      }
-      file_close(mmap_file->file);
-      list_remove(e);
-      free(mmap_file);
-      
-      lock_release(&filesys_lock);
-      
-      return;
-    }
-  }
-  
-  lock_release(&filesys_lock);
-}
